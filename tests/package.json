@@ -1,0 +1,12 @@
+{
+  "name": "@helpdesk360/tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "screenshots": "playwright test screenshots.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0"
+  }
+}

@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: helpdesk360_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: helpdesk_user
+      POSTGRES_PASSWORD: helpdesk_secure_password
+      POSTGRES_DB: helpdesk360
+    ports:
+      - "5432:5432"
+    volumes:
+      - helpdesk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U helpdesk_user -d helpdesk360"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: helpdesk360_backend
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://helpdesk_user:helpdesk_secure_password@postgres:5432/helpdesk360?schema=public
+      SESSION_SECRET: helpdesk360_super_secret_enterprise_key_2026
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: helpdesk360_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  helpdesk_pgdata:
+    driver: local

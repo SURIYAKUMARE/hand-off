@@ -1,0 +1,148 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  EMPLOYEE
+  TECHNICIAN
+}
+
+enum Category {
+  HARDWARE
+  NETWORK
+  SOFTWARE
+  ACCOUNT_ACCESS
+}
+
+enum Priority {
+  URGENT
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum Status {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  reportedTickets Ticket[]        @relation("Reporter")
+  assignedTickets Ticket[]        @relation("Assignee")
+  statusChanges   StatusHistory[]
+  events          TicketEvent[]
+  comments        Comment[]
+  sessions        Session[]
+
+  @@map("users")
+  @@index([email])
+  @@index([role])
+}
+
+model Ticket {
+  id                   String   @id @default(cuid())
+  ticketNumber         String   @unique @map("ticket_number")
+  title                String
+  description          String
+  category             Category
+  priority             Priority
+  status               Status   @default(OPEN)
+  reporterId           String   @map("reporter_id")
+  assignedTechnicianId String?  @map("assigned_technician_id")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  reporter           User            @relation("Reporter", fields: [reporterId], references: [id])
+  assignedTechnician User?           @relation("Assignee", fields: [assignedTechnicianId], references: [id])
+  statusHistory      StatusHistory[]
+  events             TicketEvent[]
+  comments           Comment[]
+
+  @@map("tickets")
+  @@index([ticketNumber])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([reporterId])
+  @@index([assignedTechnicianId])
+  @@index([createdAt])
+}
+
+model StatusHistory {
+  id             String   @id @default(cuid())
+  ticketId       String   @map("ticket_id")
+  previousStatus Status   @map("previous_status")
+  newStatus      Status   @map("new_status")
+  changedBy      String   @map("changed_by")
+  changedAt      DateTime @default(now()) @map("changed_at")
+
+  ticket  Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  changer User   @relation(fields: [changedBy], references: [id])
+
+  @@map("status_history")
+  @@index([ticketId])
+  @@index([changedAt])
+}
+
+model TicketEvent {
+  id        String   @id @default(cuid())
+  ticketId  String   @map("ticket_id")
+  eventType String   @map("event_type")
+  actorId   String   @map("actor_id")
+  oldValue  String?  @map("old_value")
+  newValue  String?  @map("new_value")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor  User   @relation(fields: [actorId], references: [id])
+
+  @@map("ticket_events")
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  ticketId  String   @map("ticket_id")
+  authorId  String   @map("author_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@map("comments")
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}

@@ -1,0 +1,116 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   // EMPLOYEE | TECHNICIAN
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reportedTickets Ticket[]        @relation("Reporter")
+  assignedTickets Ticket[]        @relation("Assignee")
+  statusChanges   StatusHistory[]
+  events          TicketEvent[]
+  comments        Comment[]
+  sessions        Session[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Ticket {
+  id                   String   @id @default(cuid())
+  ticketNumber         String   @unique // e.g. HD-1042
+  title                String
+  description          String
+  category             String   // HARDWARE | NETWORK | SOFTWARE | ACCOUNT_ACCESS
+  priority             String   // URGENT | HIGH | MEDIUM | LOW
+  status               String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  reporterId           String
+  assignedTechnicianId String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  reporter           User            @relation("Reporter", fields: [reporterId], references: [id])
+  assignedTechnician User?           @relation("Assignee", fields: [assignedTechnicianId], references: [id])
+  statusHistory      StatusHistory[]
+  events             TicketEvent[]
+  comments           Comment[]
+
+  @@index([ticketNumber])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([reporterId])
+  @@index([assignedTechnicianId])
+  @@index([createdAt])
+}
+
+model StatusHistory {
+  id             String   @id @default(cuid())
+  ticketId       String
+  previousStatus String
+  newStatus      String
+  changedBy      String
+  changedAt      DateTime @default(now())
+
+  ticket  Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  changer User   @relation(fields: [changedBy], references: [id])
+
+  @@index([ticketId])
+  @@index([changedAt])
+}
+
+model TicketEvent {
+  id        String   @id @default(cuid())
+  ticketId  String
+  eventType String   // CREATED | ASSIGNED | STATUS_CHANGED | COMMENTED
+  actorId   String
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor  User   @relation(fields: [actorId], references: [id])
+
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId])
+  @@index([createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}

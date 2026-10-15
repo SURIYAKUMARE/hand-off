@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production builds
+dist/
+frontend/dist/
+shared/dist/
+backend/dist/
+
+# Environment files & Local Databases
+.env
+backend/.env
+backend/dev.db
+backend/dev.db-journal
+*.db
+*.db-journal
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor & AI Agent runtime metadata
+.vscode/
+.idea/
+.agents/
+skills-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+tests/test-results/
+test-results/
+playwright-report/
+blob-report/

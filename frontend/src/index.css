@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: #E4E7EC;
+  }
+  
+  body {
+    background-color: #F7F8FA;
+    color: #101828;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Accessible focus indicators */
+  :focus-visible {
+    outline: 2px solid #3B3FD9;
+    outline-offset: 2px;
+  }
+}
+
+/* Custom subtle enterprise scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D0D5DD;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #98A2B3;
+}

@@ -1,0 +1,17 @@
+{
+  "short_name": "HelpDesk 360",
+  "name": "HelpDesk 360 — Enterprise IT Service Management",
+  "description": "Production-grade IT service desk for issue triage, technician assignments, and SLA monitoring.",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F7F8FA",
+  "theme_color": "#3B3FD9",
+  "display": "standalone",
+  "orientation": "any"
+}
