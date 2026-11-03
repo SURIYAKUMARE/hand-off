@@ -60,7 +60,7 @@ export const SLAManagement: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         title="Service Level Agreements (SLA)"
         subtitle="Enforce binding first-response and full-resolution targets based on incident severity."

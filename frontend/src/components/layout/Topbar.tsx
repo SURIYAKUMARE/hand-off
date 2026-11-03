@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../common/Button';
-import { PlusCircle, Search, WifiOff, RefreshCw, Sun, Moon, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, Search, WifiOff, RefreshCw, Sun, Moon, ShieldCheck, CheckCircle2, Menu } from 'lucide-react';
 import { useNetwork } from '../../context/NetworkContext';
 import { NotificationCenter } from './NotificationCenter';
 
 export interface TopbarProps {
   onSearchClick?: () => void;
+  onToggleSidebar?: () => void;
 }
 
-export const Topbar: React.FC<TopbarProps> = () => {
+export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isOnline, isSyncing, pendingCount, triggerSync } = useNetwork();
@@ -19,8 +20,19 @@ export const Topbar: React.FC<TopbarProps> = () => {
 
   return (
     <header className="h-14 bg-header-bg backdrop-blur-md border-b border-header-border sticky top-0 z-30 px-4 md:px-6 flex items-center justify-between gap-4 transition-colors duration-200">
-      {/* Left: Quick Search */}
-      <div className="flex items-center gap-3 flex-1 max-w-sm">
+      {/* Left: Mobile Toggle & Quick Search */}
+      <div className="flex items-center gap-2 flex-1 max-w-sm">
+        {onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className="md:hidden p-1.5 rounded-lg border border-border bg-surface text-text-muted hover:text-text-primary transition-colors cursor-pointer flex-shrink-0"
+            title="Toggle Sidebar"
+            aria-label="Toggle navigation menu"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {

@@ -126,7 +126,7 @@ export const Profile: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <PageHeader
         title="Account Profile & Security"
         subtitle="Manage your personal details, credentials, and operational availability."

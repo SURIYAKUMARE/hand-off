@@ -5,6 +5,9 @@ import { OfflineBanner } from './OfflineBanner';
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      return true;
+    }
     const saved = localStorage.getItem('helpdesk360_sidebar_collapsed');
     return saved === 'true';
   });
@@ -23,7 +26,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
-        <Topbar />
+        <Topbar onToggleSidebar={() => setIsCollapsed(!isCollapsed)} />
         <OfflineBanner />
         <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {children}

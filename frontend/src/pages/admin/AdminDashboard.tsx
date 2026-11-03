@@ -143,7 +143,7 @@ export const AdminDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         title="Admin Control Center"
         subtitle="Global operational overview, staff capacity, ticket distribution, and SLA adherence."

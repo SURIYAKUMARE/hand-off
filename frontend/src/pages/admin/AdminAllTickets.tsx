@@ -78,7 +78,7 @@ export const AdminAllTickets: React.FC = () => {
   });
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <PageHeader
         title="Master Ticket Directory"
         subtitle="Global administrative inspection of all enterprise incident and service requests."
@@ -97,14 +97,14 @@ export const AdminAllTickets: React.FC = () => {
             placeholder="Search tickets by ID, title, or reporter..."
             value={search}
             onChange={(e) => updateParam('search', e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-md border border-border bg-[#F7F8FA] focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-md border border-border bg-surface-muted focus:bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => updateParam('status', e.target.value)}
-          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-white text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand"
+          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
         >
           <option value="ALL">All Statuses</option>
           <option value="OPEN">Open</option>
@@ -116,7 +116,7 @@ export const AdminAllTickets: React.FC = () => {
         <select
           value={priorityFilter}
           onChange={(e) => updateParam('priority', e.target.value)}
-          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-white text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand"
+          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
         >
           <option value="ALL">All Priorities</option>
           <option value="URGENT">Urgent</option>
@@ -128,7 +128,7 @@ export const AdminAllTickets: React.FC = () => {
         <select
           value={deptFilter}
           onChange={(e) => updateParam('dept', e.target.value)}
-          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-white text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand"
+          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
         >
           <option value="ALL">All Departments</option>
           {departments.map((d) => (
@@ -141,7 +141,7 @@ export const AdminAllTickets: React.FC = () => {
         <select
           value={techFilter}
           onChange={(e) => updateParam('tech', e.target.value)}
-          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-white text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand"
+          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
         >
           <option value="ALL">All Assignees</option>
           <option value="UNASSIGNED">Unassigned</option>
