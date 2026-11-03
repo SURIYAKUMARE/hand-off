@@ -24,7 +24,14 @@ app.set('trust proxy', 1);
 // Standard Middlewares
 app.use(
   cors({
-    origin: [config.corsOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, same-origin, server-to-server) or localhost / vercel preview domains
+      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('vercel.app') || origin === config.corsOrigin) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
     credentials: true,
   })
 );

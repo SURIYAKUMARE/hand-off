@@ -38,3 +38,5 @@ tests/test-results/
 test-results/
 playwright-report/
 blob-report/
+.vercel
+.env*
