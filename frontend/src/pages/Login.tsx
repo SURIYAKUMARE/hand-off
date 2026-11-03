@@ -185,18 +185,22 @@ export const Login: React.FC = () => {
 
         {/* Brand Emblem & Headings */}
         <div className="text-center pt-1 pb-1">
-          <div className="inline-flex items-center justify-center relative w-12 h-12 rounded-xl bg-surface border border-border shadow-md mb-2">
-            <LifeBuoy className="w-6 h-6 text-brand" />
+          <div className="inline-flex items-center justify-center relative w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 border border-border shadow-md mb-2 p-1.5 overflow-hidden">
+            <img
+              src="/images/logo.png"
+              alt="Handoff Complaint App Logo"
+              className="w-full h-full object-contain rounded-xl"
+            />
             <span className="live-indicator-dot absolute -top-1 -right-1" />
           </div>
           <div className="text-[11px] font-bold text-brand uppercase tracking-wider">
-            Enterprise IT Service Management
+            Enterprise Complaint Resolution
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-text-primary tracking-tight mt-0.5">
-            HelpDesk 360 Portal
+            Handoff HelpDesk 360
           </h1>
           <p className="text-[11px] text-text-secondary font-medium mt-0.5">
-            ITIL Incident Triaging & SLA Compliance Management
+            ITIL Incident Triaging & SLA Compliance Portal
           </p>
         </div>
 
@@ -356,7 +360,7 @@ export const Login: React.FC = () => {
             <span>ISO 20000 ITIL Compliant</span>
           </div>
           <div className="text-[9px] text-text-muted font-mono">
-            HelpDesk 360 Enterprise ITSM Platform · Release v2.4
+            Handoff HelpDesk 360 Enterprise Platform · Release v2.4
           </div>
         </div>
 

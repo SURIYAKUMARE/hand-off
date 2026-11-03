@@ -1,8 +1,13 @@
 {
-  "short_name": "HelpDesk 360",
-  "name": "HelpDesk 360 — Enterprise IT Service Management",
+  "short_name": "Handoff",
+  "name": "Handoff — HelpDesk 360 Enterprise IT Service Management",
   "description": "Production-grade IT service desk for issue triage, technician assignments, and SLA monitoring.",
   "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512 192x192 128x128 64x64",
+      "type": "image/png"
+    },
     {
       "src": "/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",

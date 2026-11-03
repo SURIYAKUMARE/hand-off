@@ -140,8 +140,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
             }}
           >
             {/* Squircle Brand Emblem with Pulsing Live Dot */}
-            <div className="relative w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center flex-shrink-0 shadow-xs">
-              <LifeBuoy className="w-4 h-4 text-brand" />
+            <div className="relative w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center flex-shrink-0 shadow-xs overflow-hidden p-0.5">
+              <img
+                src="/images/logo.png"
+                alt="Handoff Logo"
+                className="w-full h-full object-contain rounded-md"
+              />
               <span className="live-indicator-dot absolute -top-1 -right-1" />
             </div>
 
@@ -149,12 +153,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="font-extrabold text-[13px] tracking-tight text-text-primary whitespace-nowrap">
-                    HelpDesk <span className="text-brand">360</span>
+                    Handoff <span className="text-brand">360</span>
                   </span>
                   <span className="brand-tag">v2.4</span>
                 </div>
                 <span className="text-[10px] text-text-muted font-medium truncate uppercase tracking-wider">
-                  ITSM Operations
+                  Complaint App
                 </span>
               </div>
             )}
