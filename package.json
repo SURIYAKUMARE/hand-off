@@ -9,6 +9,7 @@
     "tests"
   ],
   "scripts": {
+    "postinstall": "prisma generate --schema=backend/prisma/schema.prisma",
     "dev": "concurrently -k -p \"[{name}]\" -n \"BACKEND,FRONTEND\" -c \"blue.bold,cyan.bold\" \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "dev:backend": "npm run dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
@@ -18,6 +19,10 @@
     "test": "npm run test -w backend",
     "test:e2e": "npm run test -w tests",
     "screenshots": "npm run screenshots -w tests"
+  },
+  "dependencies": {
+    "prisma": "^5.19.1",
+    "@prisma/client": "^5.19.1"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

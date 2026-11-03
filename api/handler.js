@@ -20,6 +20,7 @@ function setupDb() {
         if (fs.existsSync(candidate)) {
           try {
             fs.copyFileSync(candidate, tmpDbPath);
+            console.log('Successfully copied SQLite DB to', tmpDbPath);
             break;
           } catch (e) {
             console.error('Failed to copy db:', e);
@@ -35,17 +36,23 @@ function setupDb() {
 setupDb();
 
 let app;
-try {
-  const backend = require('../backend/dist/app');
-  app = backend.app;
-} catch (err) {
-  console.error('Error loading backend app:', err);
+function getApp() {
+  if (!app) {
+    setupDb();
+    try {
+      const backend = require('../backend/dist/app');
+      app = backend.app;
+    } catch (err) {
+      console.error('Error loading backend app:', err);
+    }
+  }
+  return app;
 }
 
 module.exports = (req, res) => {
-  setupDb();
-  if (!app) {
+  const application = getApp();
+  if (!application) {
     return res.status(500).json({ error: 'Backend application failed to initialize.' });
   }
-  return app(req, res);
+  return application(req, res);
 };
