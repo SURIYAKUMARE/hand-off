@@ -86,13 +86,20 @@ export async function getPriorityDistribution(): Promise<PriorityDistributionIte
 export async function getTechnicianWorkload(): Promise<TechnicianWorkloadItem[]> {
   const technicians = await prisma.user.findMany({
     where: { role: 'TECHNICIAN' },
-    select: { id: true, name: true, email: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      technicianProfile: true,
+    },
     orderBy: { name: 'asc' },
   });
 
+  const now = new Date();
+
   const workloadItems: TechnicianWorkloadItem[] = await Promise.all(
     technicians.map(async (tech) => {
-      const [assigned, inProgress, resolved] = await Promise.all([
+      const [assigned, inProgress, resolved, overdue] = await Promise.all([
         prisma.ticket.count({
           where: { assignedTechnicianId: tech.id },
         }),
@@ -101,6 +108,13 @@ export async function getTechnicianWorkload(): Promise<TechnicianWorkloadItem[]>
         }),
         prisma.ticket.count({
           where: { assignedTechnicianId: tech.id, status: { in: ['RESOLVED', 'CLOSED'] } },
+        }),
+        prisma.ticket.count({
+          where: {
+            assignedTechnicianId: tech.id,
+            status: { notIn: ['RESOLVED', 'CLOSED'] },
+            slaDeadline: { lt: now },
+          },
         }),
       ]);
 
@@ -111,6 +125,9 @@ export async function getTechnicianWorkload(): Promise<TechnicianWorkloadItem[]>
         assigned,
         inProgress,
         resolved,
+        overdue,
+        specialization: (tech.technicianProfile?.specialization as any) || 'GENERAL_IT',
+        status: (tech.technicianProfile?.status as any) || 'AVAILABLE',
       };
     })
   );

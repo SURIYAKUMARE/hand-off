@@ -14,6 +14,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Palette,
+  Users,
+  Building2,
+  Clock,
+  BookOpen,
+  Laptop,
+  Sliders,
+  BarChart3,
+  ShieldCheck,
+  UserCircle,
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -30,9 +39,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
     navigate('/login');
   };
 
-  const employeeLinks = [
-    { to: '/employee/tickets', label: 'My tickets', icon: <Ticket className="w-4 h-4" /> },
-    { to: '/employee/new-ticket', label: 'New ticket', icon: <PlusCircle className="w-4 h-4" /> },
+  const adminLinks = [
+    { to: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { to: '/admin/tickets', label: 'All tickets', icon: <Ticket className="w-4 h-4" /> },
+    { to: '/admin/users', label: 'User management', icon: <Users className="w-4 h-4" /> },
+    { to: '/admin/technicians', label: 'Technicians', icon: <UserCheck className="w-4 h-4" /> },
+    { to: '/admin/departments', label: 'Departments', icon: <Building2 className="w-4 h-4" /> },
+    { to: '/admin/sla', label: 'SLA policies', icon: <Clock className="w-4 h-4" /> },
+    { to: '/admin/assets', label: 'IT assets', icon: <Laptop className="w-4 h-4" /> },
+    { to: '/knowledge-base', label: 'Knowledge base', icon: <BookOpen className="w-4 h-4" /> },
+    { to: '/admin/automations', label: 'Automation rules', icon: <Sliders className="w-4 h-4" /> },
+    { to: '/admin/reports', label: 'Reports & analytics', icon: <BarChart3 className="w-4 h-4" /> },
+    { to: '/admin/audit-logs', label: 'Activity logs', icon: <ShieldCheck className="w-4 h-4" /> },
+    { to: '/profile', label: 'Account profile', icon: <UserCircle className="w-4 h-4" /> },
   ];
 
   const technicianLinks = [
@@ -43,9 +62,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       label: 'My assigned tickets',
       icon: <UserCheck className="w-4 h-4" />,
     },
+    { to: '/knowledge-base', label: 'Knowledge base', icon: <BookOpen className="w-4 h-4" /> },
+    { to: '/profile', label: 'My profile', icon: <UserCircle className="w-4 h-4" /> },
   ];
 
-  const navLinks = user?.role === 'TECHNICIAN' ? technicianLinks : employeeLinks;
+  const employeeLinks = [
+    { to: '/employee/tickets', label: 'My tickets', icon: <Ticket className="w-4 h-4" /> },
+    { to: '/employee/new-ticket', label: 'New ticket', icon: <PlusCircle className="w-4 h-4" /> },
+    { to: '/knowledge-base', label: 'Knowledge base', icon: <BookOpen className="w-4 h-4" /> },
+    { to: '/profile', label: 'My profile', icon: <UserCircle className="w-4 h-4" /> },
+  ];
+
+  const navLinks =
+    user?.role === 'ADMIN'
+      ? adminLinks
+      : user?.role === 'TECHNICIAN'
+      ? technicianLinks
+      : employeeLinks;
 
   return (
     <aside
@@ -54,8 +87,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       }`}
     >
       {/* Top Header / Branding */}
-      <div>
-        <div className="h-14 flex items-center justify-between px-3.5 border-b border-border">
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="h-14 flex items-center justify-between px-3.5 border-b border-border flex-shrink-0">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-7 h-7 rounded-lg bg-brand text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">
               <LifeBuoy className="w-4 h-4" />
@@ -76,14 +109,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
           </button>
         </div>
 
-        {/* Navigation Section */}
-        <nav className="p-2 space-y-1" aria-label="Main Navigation">
+        {/* Navigation Section (Scrollable if many items) */}
+        <nav className="p-2 space-y-1 overflow-y-auto flex-1 scrollbar-thin" aria-label="Main Navigation">
           {navLinks.map((link) => {
             const navItem = (
               <NavLink
                 key={link.to}
                 to={link.to}
-                end={link.to === '/technician/queue'}
+                end={link.to === '/technician/queue' || link.to === '/admin/dashboard'}
                 className={({ isActive }) =>
                   `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
                     isCollapsed ? 'justify-center' : ''
@@ -141,13 +174,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       </div>
 
       {/* Bottom User Profile Section */}
-      <div className="p-2 border-t border-border bg-[#FDFDFE]">
+      <div className="p-2 border-t border-border bg-[#FDFDFE] flex-shrink-0">
         <div
           className={`flex items-center gap-2.5 p-1.5 rounded-lg ${
             isCollapsed ? 'justify-center' : 'justify-between'
           }`}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+            onClick={() => navigate('/profile')}
+            title="View profile settings"
+          >
             <Avatar name={user?.name || 'User'} size="sm" />
             {!isCollapsed && (
               <div className="min-w-0">
@@ -155,7 +192,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                   {user?.name}
                 </div>
                 <div className="text-[11px] text-text-muted capitalize truncate">
-                  {user?.role === 'TECHNICIAN' ? 'IT Technician' : 'Employee'}
+                  {user?.role === 'ADMIN'
+                    ? 'Administrator'
+                    : user?.role === 'TECHNICIAN'
+                    ? 'IT Technician'
+                    : 'Employee'}
                 </div>
               </div>
             )}

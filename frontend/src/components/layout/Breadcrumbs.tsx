@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react';
 export interface BreadcrumbItem {
   label: string;
   href?: string;
+  to?: string;
 }
 
 export interface BreadcrumbsProps {
@@ -17,15 +18,16 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className = '' 
     <nav aria-label="Breadcrumb" className={`flex items-center gap-1.5 text-xs text-text-muted ${className}`}>
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
+        const target = item.href || item.to;
 
         return (
           <React.Fragment key={index}>
             {index > 0 && <ChevronRight className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />}
-            {isLast || !item.href ? (
+            {isLast || !target ? (
               <span className="font-medium text-text-primary truncate">{item.label}</span>
             ) : (
               <Link
-                to={item.href}
+                to={target}
                 className="hover:text-text-primary transition-colors truncate"
               >
                 {item.label}

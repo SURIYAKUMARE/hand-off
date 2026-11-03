@@ -7,6 +7,15 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  status?: string;
+  employeeId?: string | null;
+  departmentId?: string | null;
+  department?: { id: string; name: string } | null;
+  technicianProfile?: {
+    specialization: string;
+    status: string;
+    skills: string | null;
+  } | null;
 }
 
 interface AuthContextType {

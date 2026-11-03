@@ -8,43 +8,99 @@ generator client {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
-  email        String   @unique
+  email        String    @unique
   passwordHash String
-  role         String   // EMPLOYEE | TECHNICIAN
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         String    // ADMIN | TECHNICIAN | EMPLOYEE
+  status       String    @default("ACTIVE") // ACTIVE | INACTIVE | SUSPENDED
+  employeeId   String?   @unique
+  departmentId String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  reportedTickets Ticket[]        @relation("Reporter")
-  assignedTickets Ticket[]        @relation("Assignee")
+  department        Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  technicianProfile TechnicianProfile?
+
+  reportedTickets Ticket[]           @relation("Reporter")
+  assignedTickets Ticket[]           @relation("Assignee")
   statusChanges   StatusHistory[]
   events          TicketEvent[]
   comments        Comment[]
   sessions        Session[]
+  notifications   Notification[]
+  feedback        TicketFeedback[]
+  assignedAssets  Asset[]
+  createdArticles KnowledgeArticle[]
+  auditLogs       AuditLog[]         @relation("Actor")
+  attachments     Attachment[]
 
   @@index([email])
   @@index([role])
+  @@index([status])
+  @@index([departmentId])
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users   User[]
+  tickets Ticket[]
+  assets  Asset[]
+
+  @@index([name])
+}
+
+model TechnicianProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  specialization   String   @default("GENERAL_IT") // HARDWARE | NETWORK | SOFTWARE | ACCOUNT_ACCESS | GENERAL_IT
+  status           String   @default("AVAILABLE")  // AVAILABLE | BUSY | UNAVAILABLE
+  maxActiveTickets Int      @default(5)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([specialization])
+  @@index([status])
 }
 
 model Ticket {
-  id                   String   @id @default(cuid())
-  ticketNumber         String   @unique // e.g. HD-1042
-  title                String
-  description          String
-  category             String   // HARDWARE | NETWORK | SOFTWARE | ACCOUNT_ACCESS
-  priority             String   // URGENT | HIGH | MEDIUM | LOW
-  status               String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
-  reporterId           String
-  assignedTechnicianId String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  ticketNumber          String    @unique // e.g. HD-1042
+  title                 String
+  description           String
+  category              String    // HARDWARE | NETWORK | SOFTWARE | ACCOUNT_ACCESS
+  priority              String    // URGENT | HIGH | MEDIUM | LOW
+  status                String    @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  reporterId            String
+  assignedTechnicianId  String?
+  departmentId          String?
+  assetId               String?
+  slaDeadline           DateTime?
+  firstResponseDeadline DateTime?
+  firstResponseAt       DateTime?
+  resolvedAt            DateTime?
+  isEscalated           Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   reporter           User            @relation("Reporter", fields: [reporterId], references: [id])
   assignedTechnician User?           @relation("Assignee", fields: [assignedTechnicianId], references: [id])
+  department         Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  asset              Asset?          @relation(fields: [assetId], references: [id], onDelete: SetNull)
   statusHistory      StatusHistory[]
   events             TicketEvent[]
   comments           Comment[]
+  attachments        Attachment[]
+  feedback           TicketFeedback?
 
   @@index([ticketNumber])
   @@index([status])
@@ -52,7 +108,10 @@ model Ticket {
   @@index([category])
   @@index([reporterId])
   @@index([assignedTechnicianId])
+  @@index([departmentId])
+  @@index([assetId])
   @@index([createdAt])
+  @@index([slaDeadline])
 }
 
 model StatusHistory {
@@ -73,7 +132,7 @@ model StatusHistory {
 model TicketEvent {
   id        String   @id @default(cuid())
   ticketId  String
-  eventType String   // CREATED | ASSIGNED | STATUS_CHANGED | COMMENTED
+  eventType String   // CREATED | ASSIGNED | STATUS_CHANGED | COMMENTED | ESCALATED
   actorId   String
   oldValue  String?
   newValue  String?
@@ -87,17 +146,157 @@ model TicketEvent {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  ticketId  String
-  authorId  String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  ticketId   String
+  authorId   String
+  content    String
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  author User   @relation(fields: [authorId], references: [id])
+  ticket      Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author      User         @relation(fields: [authorId], references: [id])
+  attachments Attachment[]
 
   @@index([ticketId])
+  @@index([isInternal])
+  @@index([createdAt])
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  storagePath String
+  ticketId    String
+  commentId   String?
+  uploaderId  String
+  createdAt   DateTime @default(now())
+
+  ticket   Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  comment  Comment? @relation(fields: [commentId], references: [id], onDelete: SetNull)
+  uploader User     @relation(fields: [uploaderId], references: [id])
+
+  @@index([ticketId])
+  @@index([commentId])
+  @@index([uploaderId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // TICKET_CREATED | TICKET_ASSIGNED | STATUS_CHANGED | NEW_COMMENT | SLA_WARNING | SLA_BREACH | ESCALATED
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model SlaPolicy {
+  id                   String   @id @default(cuid())
+  priority             String   @unique // URGENT | HIGH | MEDIUM | LOW
+  firstResponseMinutes Int
+  resolutionMinutes    Int
+  businessHoursOnly    Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([priority])
+}
+
+model KnowledgeArticle {
+  id          String   @id @default(cuid())
+  title       String
+  category    String   // HARDWARE | NETWORK | SOFTWARE | ACCOUNT_ACCESS
+  content     String
+  isPublished Boolean  @default(true)
+  authorId    String
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([category])
+  @@index([isPublished])
+  @@index([title])
+}
+
+model Asset {
+  id             String   @id @default(cuid())
+  assetTag       String   @unique // e.g. LAP-0042
+  name           String
+  type           String   // LAPTOP | DESKTOP | PRINTER | MONITOR | ROUTER | OTHER
+  serialNumber   String?
+  assignedUserId String?
+  departmentId   String?
+  status         String   @default("ACTIVE") // ACTIVE | MAINTENANCE | RETIRED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  assignedUser User?       @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  tickets      Ticket[]
+
+  @@index([assetTag])
+  @@index([assignedUserId])
+  @@index([departmentId])
+  @@index([type])
+  @@index([status])
+}
+
+model TicketFeedback {
+  id         String   @id @default(cuid())
+  ticketId   String   @unique
+  employeeId String
+  rating     Int      // 1 to 5
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  employee User   @relation(fields: [employeeId], references: [id])
+
+  @@index([ticketId])
+  @@index([rating])
+}
+
+model AutomationRule {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  eventType   String   // TICKET_CREATED | SLA_WARNING | SLA_BREACH
+  actionType  String   // AUTO_ASSIGN | ESCALATE | NOTIFY_TEAM
+  isEnabled   Boolean  @default(true)
+  configJson  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([isEnabled])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  action       String
+  targetType   String   // USER | TICKET | DEPARTMENT | SLA | SETTINGS | ASSET | AUTOMATION
+  targetId     String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+
+  actor User? @relation("Actor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType])
   @@index([createdAt])
 }
 

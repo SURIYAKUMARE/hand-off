@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '../prisma';
 import { config } from '../config';
 import { AppError } from './errorHandler';
-import { UserRole } from '@helpdesk360/shared';
+import { UserRole, AccountStatus } from '@helpdesk360/shared';
 
 declare global {
   namespace Express {
@@ -13,6 +13,8 @@ declare global {
         name: string;
         email: string;
         role: UserRole;
+        status: AccountStatus;
+        departmentId?: string | null;
       };
       sessionToken?: string;
     }
@@ -63,6 +65,8 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
             name: true,
             email: true,
             role: true,
+            status: true,
+            departmentId: true,
           },
         },
       },
@@ -77,11 +81,21 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       throw new AppError('Session expired. Please sign in again.', 401);
     }
 
+    if (session.user.status !== 'ACTIVE') {
+      await prisma.session.delete({ where: { token } }).catch(() => {});
+      throw new AppError(
+        `Your account is ${session.user.status.toLowerCase()}. Please contact your IT administrator.`,
+        403
+      );
+    }
+
     req.user = {
       id: session.user.id,
       name: session.user.name,
       email: session.user.email,
       role: session.user.role as UserRole,
+      status: session.user.status as AccountStatus,
+      departmentId: session.user.departmentId,
     };
     req.sessionToken = token;
 

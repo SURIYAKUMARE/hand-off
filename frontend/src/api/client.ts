@@ -58,6 +58,12 @@ export const api = {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
     }),
+  put: <T>(endpoint: string, body?: any, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    }),
   patch: <T>(endpoint: string, body?: any, options?: RequestInit) =>
     request<T>(endpoint, {
       ...options,
@@ -66,4 +72,23 @@ export const api = {
     }),
   delete: <T>(endpoint: string, options?: RequestInit) =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
+  postFormData: async <T>(endpoint: string, formData: FormData): Promise<T> => {
+    const url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+    let data: any = null;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    }
+    if (!response.ok) {
+      const errorMessage =
+        data?.error || data?.message || `Request failed with status ${response.status}`;
+      throw new ApiError(errorMessage, response.status, data?.validationErrors, data?.details);
+    }
+    return data as T;
+  },
 };

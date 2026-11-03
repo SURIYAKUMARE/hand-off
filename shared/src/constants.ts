@@ -23,6 +23,52 @@ export const CATEGORY_LABELS: Record<TicketCategory, string> = {
   ACCOUNT_ACCESS: 'Account access',
 };
 
+export const TECHNICIAN_SPECIALIZATION_LABELS = {
+  HARDWARE: 'Hardware',
+  NETWORK: 'Network',
+  SOFTWARE: 'Software',
+  ACCOUNT_ACCESS: 'Account Access',
+  GENERAL_IT: 'General IT Support',
+} as const;
+
+export const SPECIALIZATION_CONFIG = {
+  HARDWARE: { label: 'Hardware', color: '#B54708', bgColor: '#FFFAEB', borderColor: '#FEDF89' },
+  NETWORK: { label: 'Network', color: '#175CD3', bgColor: '#EFF8FF', borderColor: '#B2DDFF' },
+  SOFTWARE: { label: 'Software', color: '#6941C6', bgColor: '#F9F5FF', borderColor: '#E9D7FE' },
+  ACCOUNT_ACCESS: { label: 'Account Access', color: '#C01048', bgColor: '#FFF1F3', borderColor: '#FECDCA' },
+  GENERAL_IT: { label: 'General IT', color: '#344054', bgColor: '#F8F9FC', borderColor: '#EAECF0' },
+} as const;
+
+export const TECHNICIAN_STATUS_CONFIG = {
+  AVAILABLE: { label: 'Available', color: '#12B76A', bg: '#ECFDF3', bgColor: '#ECFDF3', border: '#A6F4C5' },
+  BUSY: { label: 'Busy', color: '#F79009', bg: '#FEF0C7', bgColor: '#FEF0C7', border: '#FEDF89' },
+  UNAVAILABLE: { label: 'Unavailable', color: '#667085', bg: '#F2F4F7', bgColor: '#F2F4F7', border: '#D0D5DD' },
+} as const;
+
+export const ACCOUNT_STATUS_CONFIG = {
+  ACTIVE: { label: 'Active', color: '#027A48', bg: '#ECFDF3', border: '#A6F4C5' },
+  INACTIVE: { label: 'Inactive', color: '#475467', bg: '#F2F4F7', border: '#D0D5DD' },
+  SUSPENDED: { label: 'Suspended', color: '#B42318', bg: '#FEF3F2', border: '#FECDCA' },
+} as const;
+
+export const ASSET_TYPE_LABELS = {
+  LAPTOP: 'Laptop',
+  DESKTOP: 'Desktop',
+  PRINTER: 'Printer',
+  MONITOR: 'Monitor',
+  ROUTER: 'Router',
+  OTHER: 'Other Equipment',
+} as const;
+
+export const ASSET_STATUS_CONFIG = {
+  ACTIVE: { label: 'In Use', color: '#027A48', bgColor: '#ECFDF3', bg: '#ECFDF3' },
+  IN_USE: { label: 'In Use', color: '#027A48', bgColor: '#ECFDF3', bg: '#ECFDF3' },
+  IN_STORAGE: { label: 'In Storage', color: '#175CD3', bgColor: '#EFF8FF', bg: '#EFF8FF' },
+  UNDER_REPAIR: { label: 'Under Repair', color: '#B54708', bgColor: '#FFFAEB', bg: '#FFFAEB' },
+  MAINTENANCE: { label: 'Under Repair', color: '#B54708', bgColor: '#FFFAEB', bg: '#FFFAEB' },
+  RETIRED: { label: 'Retired', color: '#667085', bgColor: '#F2F4F7', bg: '#F2F4F7' },
+} as const;
+
 export const PRIORITY_CONFIG: Record<
   TicketPriority,
   {

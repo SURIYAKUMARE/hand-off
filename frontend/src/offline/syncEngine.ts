@@ -96,6 +96,7 @@ export function queueOfflineComment(
     ticketId,
     authorId: author.id,
     content,
+    isInternal: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     author: {

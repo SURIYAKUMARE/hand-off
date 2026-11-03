@@ -8,6 +8,12 @@ import commentRoutes from './routes/comments';
 import dashboardRoutes from './routes/dashboard';
 import userRoutes from './routes/users';
 import healthRoutes from './routes/health';
+import adminRoutes from './routes/admin';
+import departmentsRoutes from './routes/departments';
+import notificationsRoutes from './routes/notifications';
+import knowledgeBaseRoutes from './routes/knowledgeBase';
+import assetsRoutes from './routes/assets';
+import profileRoutes from './routes/profile';
 import { errorHandler } from './middleware/errorHandler';
 
 export const app = express();
@@ -32,6 +38,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/tickets', commentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/departments', departmentsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/knowledge-base', knowledgeBaseRoutes);
+app.use('/api/assets', assetsRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api', userRoutes);
 app.use('/api', healthRoutes);
 

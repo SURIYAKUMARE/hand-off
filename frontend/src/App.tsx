@@ -12,6 +12,18 @@ import { EmployeeTicketDetail } from './pages/employee/TicketDetail';
 import { Dashboard } from './pages/technician/Dashboard';
 import { SupportQueue } from './pages/technician/SupportQueue';
 import { TechnicianTicketDetail } from './pages/technician/TicketDetail';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminAllTickets } from './pages/admin/AdminAllTickets';
+import { UserManagement } from './pages/admin/UserManagement';
+import { TechnicianManagement } from './pages/admin/TechnicianManagement';
+import { DepartmentManagement } from './pages/admin/DepartmentManagement';
+import { SLAManagement } from './pages/admin/SLAManagement';
+import { AssetManagement } from './pages/admin/AssetManagement';
+import { AutomationRules } from './pages/admin/AutomationRules';
+import { ReportsAnalytics } from './pages/admin/ReportsAnalytics';
+import { AuditLogs } from './pages/admin/AuditLogs';
+import { KnowledgeBase } from './pages/KnowledgeBase';
+import { Profile } from './pages/Profile';
 import { DesignSystemGallery } from './pages/DesignSystemGallery';
 import { Forbidden } from './pages/Forbidden';
 import { NotFound } from './pages/NotFound';
@@ -74,6 +86,10 @@ const RootRedirect: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
+  if (user.role === 'ADMIN') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
   if (user.role === 'TECHNICIAN') {
     return <Navigate to="/technician/dashboard" replace />;
   }
@@ -95,11 +111,11 @@ export const App: React.FC = () => {
                 {/* Root index redirect */}
                 <Route path="/" element={<RootRedirect />} />
 
-                {/* Employee Routes (accessible by Employee & Technician) */}
+                {/* Employee Routes (accessible by Employee & Technician & Admin) */}
                 <Route
                   path="/employee/tickets"
                   element={
-                    <ProtectedRoute allowedRoles={['EMPLOYEE', 'TECHNICIAN']}>
+                    <ProtectedRoute allowedRoles={['EMPLOYEE', 'TECHNICIAN', 'ADMIN']}>
                       <MyTickets />
                     </ProtectedRoute>
                   }
@@ -107,7 +123,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/employee/new-ticket"
                   element={
-                    <ProtectedRoute allowedRoles={['EMPLOYEE', 'TECHNICIAN']}>
+                    <ProtectedRoute allowedRoles={['EMPLOYEE', 'TECHNICIAN', 'ADMIN']}>
                       <NewTicket />
                     </ProtectedRoute>
                   }
@@ -115,17 +131,17 @@ export const App: React.FC = () => {
                 <Route
                   path="/employee/tickets/:id"
                   element={
-                    <ProtectedRoute allowedRoles={['EMPLOYEE', 'TECHNICIAN']}>
+                    <ProtectedRoute allowedRoles={['EMPLOYEE', 'TECHNICIAN', 'ADMIN']}>
                       <EmployeeTicketDetail />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* Technician Routes (strictly TECHNICIAN role only) */}
+                {/* Technician Routes (accessible by Technician & Admin) */}
                 <Route
                   path="/technician/dashboard"
                   element={
-                    <ProtectedRoute allowedRoles={['TECHNICIAN']}>
+                    <ProtectedRoute allowedRoles={['TECHNICIAN', 'ADMIN']}>
                       <Dashboard />
                     </ProtectedRoute>
                   }
@@ -133,7 +149,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/technician/queue"
                   element={
-                    <ProtectedRoute allowedRoles={['TECHNICIAN']}>
+                    <ProtectedRoute allowedRoles={['TECHNICIAN', 'ADMIN']}>
                       <SupportQueue />
                     </ProtectedRoute>
                   }
@@ -141,8 +157,108 @@ export const App: React.FC = () => {
                 <Route
                   path="/technician/tickets/:id"
                   element={
-                    <ProtectedRoute allowedRoles={['TECHNICIAN']}>
+                    <ProtectedRoute allowedRoles={['TECHNICIAN', 'ADMIN']}>
                       <TechnicianTicketDetail />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Admin Portal Routes (strictly ADMIN only) */}
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/tickets"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <AdminAllTickets />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <UserManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/technicians"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <TechnicianManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/departments"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <DepartmentManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/sla"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <SLAManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/assets"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <AssetManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/automations"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <AutomationRules />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/reports"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <ReportsAnalytics />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/audit-logs"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <AuditLogs />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Shared Multi-Role Pages */}
+                <Route
+                  path="/knowledge-base"
+                  element={
+                    <ProtectedRoute>
+                      <KnowledgeBase />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
                     </ProtectedRoute>
                   }
                 />

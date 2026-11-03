@@ -23,7 +23,11 @@ export const Login: React.FC = () => {
   React.useEffect(() => {
     if (user) {
       const target =
-        user.role === 'TECHNICIAN' ? '/technician/dashboard' : '/employee/tickets';
+        user.role === 'ADMIN'
+          ? '/admin/dashboard'
+          : user.role === 'TECHNICIAN'
+          ? '/technician/dashboard'
+          : '/employee/tickets';
       navigate(target, { replace: true });
     }
   }, [user, navigate]);
@@ -46,11 +50,14 @@ export const Login: React.FC = () => {
       const authenticatedUser = await login(email.trim(), password, rememberMe);
       toast.success(`Welcome back, ${authenticatedUser.name}!`);
 
-      const destination =
-        (location.state as any)?.from?.pathname ||
-        (authenticatedUser.role === 'TECHNICIAN'
+      const defaultDest =
+        authenticatedUser.role === 'ADMIN'
+          ? '/admin/dashboard'
+          : authenticatedUser.role === 'TECHNICIAN'
           ? '/technician/dashboard'
-          : '/employee/tickets');
+          : '/employee/tickets';
+
+      const destination = (location.state as any)?.from?.pathname || defaultDest;
       navigate(destination, { replace: true });
     } catch (err: any) {
       setErrorMessage(err?.message || 'Invalid email or password.');
@@ -168,30 +175,42 @@ export const Login: React.FC = () => {
           {/* Demo Accounts Helper Panel (Local Development) */}
           <div className="pt-4 border-t border-border">
             <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2.5">
-              Quick demo accounts
+              Quick demo accounts (Click to fill)
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleFillDemo('priya.nair@helpdesk.local')}
-                className="flex items-start gap-2 p-2.5 text-left rounded-lg border border-border bg-surface hover:bg-[#F9FAFB] hover:border-brand/40 transition-colors"
+                onClick={() => handleFillDemo('admin@helpdesk.local')}
+                className="flex items-start gap-2 p-2 text-left rounded-lg border border-border bg-surface hover:bg-[#F9FAFB] hover:border-brand/40 transition-colors"
               >
-                <UserCheck className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="text-xs font-semibold text-text-primary">Priya Nair</div>
-                  <div className="text-[10px] text-text-muted">Employee (Requester)</div>
+                <ShieldCheck className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-text-primary truncate">Vikram Aditya</div>
+                  <div className="text-[10px] text-text-muted truncate">Admin</div>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleFillDemo('arjun.mehta@helpdesk.local')}
-                className="flex items-start gap-2 p-2.5 text-left rounded-lg border border-border bg-surface hover:bg-[#F9FAFB] hover:border-brand/40 transition-colors"
+                className="flex items-start gap-2 p-2 text-left rounded-lg border border-border bg-surface hover:bg-[#F9FAFB] hover:border-brand/40 transition-colors"
               >
                 <UserCheck className="w-4 h-4 text-[#F79009] mt-0.5 flex-shrink-0" />
-                <div>
-                  <div className="text-xs font-semibold text-text-primary">Arjun Mehta</div>
-                  <div className="text-[10px] text-text-muted">IT Technician</div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-text-primary truncate">Arjun Mehta</div>
+                  <div className="text-[10px] text-text-muted truncate">Technician</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleFillDemo('priya.nair@helpdesk.local')}
+                className="flex items-start gap-2 p-2 text-left rounded-lg border border-border bg-surface hover:bg-[#F9FAFB] hover:border-brand/40 transition-colors"
+              >
+                <UserCheck className="w-4 h-4 text-[#2E90FA] mt-0.5 flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-text-primary truncate">Priya Nair</div>
+                  <div className="text-[10px] text-text-muted truncate">Employee</div>
                 </div>
               </button>
             </div>

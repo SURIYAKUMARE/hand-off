@@ -28,8 +28,14 @@ router.get('/:id/comments', async (req, res, next) => {
       throw new AppError("You don't have permission to view comments for this ticket.", 403);
     }
 
+    // Employees NEVER see internal notes
+    const whereClause: { ticketId: string; isInternal?: boolean } = { ticketId: ticket.id };
+    if (req.user!.role === 'EMPLOYEE') {
+      whereClause.isInternal = false;
+    }
+
     const comments = await prisma.comment.findMany({
-      where: { ticketId: ticket.id },
+      where: whereClause,
       orderBy: { createdAt: 'asc' },
       include: {
         author: {
@@ -51,7 +57,7 @@ router.get('/:id/comments', async (req, res, next) => {
 router.post('/:id/comments', validateBody(CreateCommentSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { content } = req.body;
+    const { content, isInternal } = req.body;
 
     const ticket = await prisma.ticket.findFirst({
       where: { OR: [{ id }, { ticketNumber: id.toUpperCase() }] },
@@ -62,17 +68,27 @@ router.post('/:id/comments', validateBody(CreateCommentSchema), async (req, res,
       throw new AppError('Ticket not found.', 404);
     }
 
-    // Role check: Employee can only comment on their own ticket. Technicians can comment on any ticket.
-    if (req.user!.role === 'EMPLOYEE' && ticket.reporterId !== req.user!.id) {
-      throw new AppError("You don't have permission to comment on this ticket.", 403);
+    // Role check: Employee can only comment on their own ticket
+    if (req.user!.role === 'EMPLOYEE') {
+      if (ticket.reporterId !== req.user!.id) {
+        throw new AppError("You don't have permission to comment on this ticket.", 403);
+      }
+      if (isInternal) {
+        throw new AppError('Employees cannot post internal notes.', 403);
+      }
     }
 
-    const comment = await addComment(ticket.id, req.user!.id, content);
+    const comment = await addComment(
+      ticket.id,
+      req.user!.id,
+      content,
+      req.user!.role !== 'EMPLOYEE' ? Boolean(isInternal) : false
+    );
 
     return res.status(201).json({
       success: true,
       comment,
-      message: 'Comment posted successfully.',
+      message: isInternal ? 'Internal note added.' : 'Comment posted successfully.',
     });
   } catch (error) {
     next(error);

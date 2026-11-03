@@ -39,7 +39,11 @@ import {
   Play,
   Check,
   Lock,
+  Building2,
+  HardDrive,
+  Star,
 } from 'lucide-react';
+import { AttachmentsList } from '../../components/tickets/AttachmentsList';
 
 export const TechnicianTicketDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -135,15 +139,15 @@ export const TechnicianTicketDetail: React.FC = () => {
 
   // Comment Mutation
   const commentMutation = useMutation({
-    mutationFn: async (content: string) => {
-      return await api.post(`/tickets/${ticket?.id}/comments`, { content });
+    mutationFn: async ({ content, isInternal }: { content: string; isInternal?: boolean }) => {
+      return await api.post(`/tickets/${ticket?.id}/comments`, { content, isInternal });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['technician-ticket', id] });
       setLocalComments([]);
-      toast.success('Comment posted successfully.');
+      toast.success(variables.isInternal ? 'Internal note added.' : 'Comment posted successfully.');
     },
-    onError: (err: any, content: string) => {
+    onError: (err: any, variables: { content: string; isInternal?: boolean }) => {
       const isNetworkFailure =
         !navigator.onLine ||
         err?.name === 'TypeError' ||
@@ -151,7 +155,7 @@ export const TechnicianTicketDetail: React.FC = () => {
         err?.message?.toLowerCase().includes('network');
 
       if (isNetworkFailure && ticket?.id) {
-        const queued = queueOfflineComment(ticket.id, content, {
+        const queued = queueOfflineComment(ticket.id, variables.content, {
           id: user?.id || 'tech',
           name: user?.name || 'Technician',
           role: user?.role || 'TECHNICIAN',
@@ -269,6 +273,16 @@ export const TechnicianTicketDetail: React.FC = () => {
             </div>
           </Card>
 
+          {/* Attachments Card */}
+          <Card>
+            <AttachmentsList
+              ticketId={ticket.id}
+              attachments={ticket.attachments}
+              onAttachmentUploaded={() => refetch()}
+              canUpload={ticket.status !== 'CLOSED'}
+            />
+          </Card>
+
           {/* Activity Timeline (Real events only) */}
           <Card>
             <CardHeader
@@ -286,7 +300,8 @@ export const TechnicianTicketDetail: React.FC = () => {
             />
             <CommentThread
               comments={[...(ticket.comments || []), ...localComments]}
-              onAddComment={async (content) => {
+              allowInternalNotes={true}
+              onAddComment={async (content, isInternal) => {
                 if (!isOnline || !navigator.onLine) {
                   const queued = queueOfflineComment(ticket.id, content, {
                     id: user?.id || 'tech',
@@ -300,7 +315,7 @@ export const TechnicianTicketDetail: React.FC = () => {
                   );
                   return;
                 }
-                await commentMutation.mutateAsync(content);
+                await commentMutation.mutateAsync({ content, isInternal });
               }}
               isSubmitting={commentMutation.isPending}
             />
@@ -419,6 +434,40 @@ export const TechnicianTicketDetail: React.FC = () => {
                   )}
                 </span>
               </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-border">
+                <span className="text-text-muted flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5" />
+                  Department
+                </span>
+                <span className="font-medium text-text-primary">
+                  {ticket.department?.name || <span className="text-text-muted">—</span>}
+                </span>
+              </div>
+
+              {ticket.asset && (
+                <div className="flex justify-between items-center py-1 border-b border-border">
+                  <span className="text-text-muted flex items-center gap-1.5">
+                    <HardDrive className="w-3.5 h-3.5" />
+                    IT Asset
+                  </span>
+                  <span className="font-medium text-brand font-mono text-[11px]">
+                    {ticket.asset.assetTag}
+                  </span>
+                </div>
+              )}
+
+              {ticket.feedback && (
+                <div className="flex justify-between items-center py-1 border-b border-border">
+                  <span className="text-text-muted flex items-center gap-1.5">
+                    <Star className="w-3.5 h-3.5 text-[#F79009] fill-[#F79009]" />
+                    CSAT Rating
+                  </span>
+                  <span className="font-bold text-[#B54708] bg-[#FFFAEB] px-2 py-0.5 rounded border border-[#FEDF89] text-[11px]">
+                    {ticket.feedback.rating} / 5 Stars
+                  </span>
+                </div>
+              )}
 
               <div className="flex justify-between items-center py-1 border-b border-border">
                 <span className="text-text-muted flex items-center gap-1.5">

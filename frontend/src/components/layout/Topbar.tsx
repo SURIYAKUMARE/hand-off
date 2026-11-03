@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '../common/Button';
 import { PlusCircle, Search, WifiOff, RefreshCw } from 'lucide-react';
 import { useNetwork } from '../../context/NetworkContext';
+import { NotificationCenter } from './NotificationCenter';
 
 export interface TopbarProps {
   onSearchClick?: () => void;
@@ -20,7 +21,9 @@ export const Topbar: React.FC<TopbarProps> = () => {
         <button
           type="button"
           onClick={() => {
-            if (user?.role === 'TECHNICIAN') {
+            if (user?.role === 'ADMIN') {
+              navigate('/admin/tickets');
+            } else if (user?.role === 'TECHNICIAN') {
               navigate('/technician/queue');
             } else {
               navigate('/employee/tickets');
@@ -45,6 +48,9 @@ export const Topbar: React.FC<TopbarProps> = () => {
             New ticket
           </Button>
         )}
+
+        {/* In-App Notifications */}
+        <NotificationCenter />
 
         {/* Dynamic Network Status Indicator */}
         {!isOnline ? (

@@ -16,7 +16,9 @@ import { Card, CardHeader } from '../../components/common/Card';
 import { TicketDetailSkeleton } from '../../components/common/Skeleton';
 import { ErrorBanner } from '../../components/common/ErrorBanner';
 import { SLABadge } from '../../components/tickets/SLABadge';
-import { Calendar, User, Laptop, Clock, ShieldAlert } from 'lucide-react';
+import { Calendar, User, Laptop, Clock, ShieldAlert, Building2, HardDrive } from 'lucide-react';
+import { AttachmentsList } from '../../components/tickets/AttachmentsList';
+import { SatisfactionRating } from '../../components/tickets/SatisfactionRating';
 
 export const EmployeeTicketDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -115,6 +117,8 @@ export const EmployeeTicketDetail: React.FC = () => {
     });
   };
 
+  const isResolvedOrClosed = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED';
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -147,7 +151,7 @@ export const EmployeeTicketDetail: React.FC = () => {
 
       {/* 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (Main content): Description + Comments + Activity timeline */}
+        {/* Left Column (Main content): Description + Attachments + Feedback + Timeline + Comments */}
         <div className="lg:col-span-2 space-y-6">
           {/* Issue Description Card */}
           <Card>
@@ -157,7 +161,26 @@ export const EmployeeTicketDetail: React.FC = () => {
             </div>
           </Card>
 
-          {/* Activity Timeline (Real events only) */}
+          {/* Attachments Card */}
+          <Card>
+            <AttachmentsList
+              ticketId={ticket.id}
+              attachments={ticket.attachments}
+              onAttachmentUploaded={() => refetch()}
+              canUpload={ticket.status !== 'CLOSED'}
+            />
+          </Card>
+
+          {/* Customer Satisfaction Feedback (When Resolved or Closed) */}
+          {isResolvedOrClosed && (
+            <SatisfactionRating
+              ticketId={ticket.id}
+              initialFeedback={ticket.feedback}
+              onFeedbackSubmitted={() => refetch()}
+            />
+          )}
+
+          {/* Activity Timeline */}
           <Card>
             <CardHeader
               title="Activity history"
@@ -195,7 +218,7 @@ export const EmployeeTicketDetail: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Column: Ticket Metadata Sidebar (Read-only for employee) */}
+        {/* Right Column: Ticket Metadata Sidebar */}
         <div className="space-y-6">
           <Card>
             <CardHeader title="Ticket details" />
@@ -223,6 +246,28 @@ export const EmployeeTicketDetail: React.FC = () => {
                   )}
                 </span>
               </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-border">
+                <span className="text-text-muted flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5" />
+                  Department
+                </span>
+                <span className="font-medium text-text-primary">
+                  {ticket.department?.name || <span className="text-text-muted">—</span>}
+                </span>
+              </div>
+
+              {ticket.asset && (
+                <div className="flex justify-between items-center py-1 border-b border-border">
+                  <span className="text-text-muted flex items-center gap-1.5">
+                    <HardDrive className="w-3.5 h-3.5" />
+                    IT Asset
+                  </span>
+                  <span className="font-medium text-brand font-mono text-[11px]">
+                    {ticket.asset.assetTag}
+                  </span>
+                </div>
+              )}
 
               <div className="flex justify-between items-center py-1 border-b border-border">
                 <span className="text-text-muted flex items-center gap-1.5">

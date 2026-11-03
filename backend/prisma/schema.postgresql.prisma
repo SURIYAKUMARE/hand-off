@@ -8,8 +8,29 @@ generator client {
 }
 
 enum Role {
-  EMPLOYEE
+  ADMIN
   TECHNICIAN
+  EMPLOYEE
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TechnicianStatus {
+  AVAILABLE
+  BUSY
+  UNAVAILABLE
+}
+
+enum TechnicianSpecialization {
+  HARDWARE
+  NETWORK
+  SOFTWARE
+  ACCOUNT_ACCESS
+  GENERAL_IT
 }
 
 enum Category {
@@ -33,45 +54,118 @@ enum Status {
   CLOSED
 }
 
-model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         Role
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+enum AssetType {
+  LAPTOP
+  DESKTOP
+  PRINTER
+  MONITOR
+  ROUTER
+  OTHER
+}
 
-  reportedTickets Ticket[]        @relation("Reporter")
-  assignedTickets Ticket[]        @relation("Assignee")
+enum AssetStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  role         Role
+  status       AccountStatus @default(ACTIVE)
+  employeeId   String?       @unique @map("employee_id")
+  departmentId String?       @map("department_id")
+  lastLoginAt  DateTime?     @map("last_login_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  department        Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  technicianProfile TechnicianProfile?
+
+  reportedTickets Ticket[]           @relation("Reporter")
+  assignedTickets Ticket[]           @relation("Assignee")
   statusChanges   StatusHistory[]
   events          TicketEvent[]
   comments        Comment[]
   sessions        Session[]
+  notifications   Notification[]
+  feedback        TicketFeedback[]
+  assignedAssets  Asset[]
+  createdArticles KnowledgeArticle[]
+  auditLogs       AuditLog[]         @relation("Actor")
+  attachments     Attachment[]
 
   @@map("users")
   @@index([email])
   @@index([role])
+  @@index([status])
+  @@index([departmentId])
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users   User[]
+  tickets Ticket[]
+  assets  Asset[]
+
+  @@map("departments")
+  @@index([name])
+}
+
+model TechnicianProfile {
+  id               String                   @id @default(cuid())
+  userId           String                   @unique @map("user_id")
+  specialization   TechnicianSpecialization @default(GENERAL_IT)
+  status           TechnicianStatus         @default(AVAILABLE)
+  maxActiveTickets Int                      @default(5) @map("max_active_tickets")
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("technician_profiles")
+  @@index([specialization])
+  @@index([status])
 }
 
 model Ticket {
-  id                   String   @id @default(cuid())
-  ticketNumber         String   @unique @map("ticket_number")
-  title                String
-  description          String
-  category             Category
-  priority             Priority
-  status               Status   @default(OPEN)
-  reporterId           String   @map("reporter_id")
-  assignedTechnicianId String?  @map("assigned_technician_id")
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
+  id                    String    @id @default(cuid())
+  ticketNumber          String    @unique @map("ticket_number")
+  title                 String
+  description           String
+  category              Category
+  priority              Priority
+  status                Status    @default(OPEN)
+  reporterId            String    @map("reporter_id")
+  assignedTechnicianId  String?   @map("assigned_technician_id")
+  departmentId          String?   @map("department_id")
+  assetId               String?   @map("asset_id")
+  slaDeadline           DateTime? @map("sla_deadline")
+  firstResponseDeadline DateTime? @map("first_response_deadline")
+  firstResponseAt       DateTime? @map("first_response_at")
+  resolvedAt            DateTime? @map("resolved_at")
+  isEscalated           Boolean   @default(false) @map("is_escalated")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   reporter           User            @relation("Reporter", fields: [reporterId], references: [id])
   assignedTechnician User?           @relation("Assignee", fields: [assignedTechnicianId], references: [id])
+  department         Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  asset              Asset?          @relation(fields: [assetId], references: [id], onDelete: SetNull)
   statusHistory      StatusHistory[]
   events             TicketEvent[]
   comments           Comment[]
+  attachments        Attachment[]
+  feedback           TicketFeedback?
 
   @@map("tickets")
   @@index([ticketNumber])
@@ -80,7 +174,10 @@ model Ticket {
   @@index([category])
   @@index([reporterId])
   @@index([assignedTechnicianId])
+  @@index([departmentId])
+  @@index([assetId])
   @@index([createdAt])
+  @@index([slaDeadline])
 }
 
 model StatusHistory {
@@ -117,18 +214,166 @@ model TicketEvent {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  ticketId  String   @map("ticket_id")
-  authorId  String   @map("author_id")
-  content   String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  ticketId   String   @map("ticket_id")
+  authorId   String   @map("author_id")
+  content    String
+  isInternal Boolean  @default(false) @map("is_internal")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  author User   @relation(fields: [authorId], references: [id])
+  ticket      Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author      User         @relation(fields: [authorId], references: [id])
+  attachments Attachment[]
 
   @@map("comments")
   @@index([ticketId])
+  @@index([isInternal])
+  @@index([createdAt])
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  fileName    String   @map("file_name")
+  fileSize    Int      @map("file_size")
+  mimeType    String   @map("mime_type")
+  storagePath String   @map("storage_path")
+  ticketId    String   @map("ticket_id")
+  commentId   String?  @map("comment_id")
+  uploaderId  String   @map("uploader_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  ticket   Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  comment  Comment? @relation(fields: [commentId], references: [id], onDelete: SetNull)
+  uploader User     @relation(fields: [uploaderId], references: [id])
+
+  @@map("attachments")
+  @@index([ticketId])
+  @@index([commentId])
+  @@index([uploaderId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  type      String
+  link      String?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model SlaPolicy {
+  id                   String   @id @default(cuid())
+  priority             Priority @unique
+  firstResponseMinutes Int      @map("first_response_minutes")
+  resolutionMinutes    Int      @map("resolution_minutes")
+  businessHoursOnly    Boolean  @default(false) @map("business_hours_only")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("sla_policies")
+  @@index([priority])
+}
+
+model KnowledgeArticle {
+  id          String   @id @default(cuid())
+  title       String
+  category    Category
+  content     String
+  isPublished Boolean  @default(true) @map("is_published")
+  authorId    String   @map("author_id")
+  views       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@map("knowledge_articles")
+  @@index([category])
+  @@index([isPublished])
+  @@index([title])
+}
+
+model Asset {
+  id             String      @id @default(cuid())
+  assetTag       String      @unique @map("asset_tag")
+  name           String
+  type           AssetType
+  serialNumber   String?     @map("serial_number")
+  assignedUserId String?     @map("assigned_user_id")
+  departmentId   String?     @map("department_id")
+  status         AssetStatus @default(ACTIVE)
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  assignedUser User?       @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  tickets      Ticket[]
+
+  @@map("assets")
+  @@index([assetTag])
+  @@index([assignedUserId])
+  @@index([departmentId])
+  @@index([type])
+  @@index([status])
+}
+
+model TicketFeedback {
+  id         String   @id @default(cuid())
+  ticketId   String   @unique @map("ticket_id")
+  employeeId String   @map("employee_id")
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  employee User   @relation(fields: [employeeId], references: [id])
+
+  @@map("ticket_feedback")
+  @@index([ticketId])
+  @@index([rating])
+}
+
+model AutomationRule {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  eventType   String   @map("event_type")
+  actionType  String   @map("action_type")
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  configJson  String?  @map("config_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("automation_rules")
+  @@index([eventType])
+  @@index([isEnabled])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?  @map("actor_id")
+  action       String
+  targetType   String   @map("target_type")
+  targetId     String?  @map("target_id")
+  metadataJson String?  @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("Actor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType])
   @@index([createdAt])
 }
 
