@@ -6,7 +6,6 @@ node_modules/
 dist/
 frontend/dist/
 shared/dist/
-backend/dist/
 
 # Environment files & Local Databases
 .env
@@ -14,6 +13,7 @@ backend/.env
 backend/dev.db
 backend/dev.db-journal
 *.db
+!backend/prisma/production-seed.db
 *.db-journal
 
 # Logs

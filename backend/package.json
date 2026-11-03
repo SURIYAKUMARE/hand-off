@@ -5,13 +5,13 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc && prisma generate",
+    "build": "tsc && prisma generate --schema=prisma/schema.prisma",
     "start": "node dist/server.js",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate --schema=prisma/schema.prisma",
+    "db:push": "prisma db push --schema=prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
-    "db:setup": "prisma db push && tsx prisma/seed.ts",
+    "db:setup": "prisma db push --schema=prisma/schema.prisma && tsx prisma/seed.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -26,6 +26,8 @@
     "express-rate-limit": "^7.4.0",
     "express-session": "^1.18.0",
     "multer": "^2.4.0",
+    "prisma": "^5.19.1",
+    "typescript": "^5.5.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -36,10 +38,8 @@
     "@types/express-session": "^1.18.0",
     "@types/node": "^22.5.4",
     "@types/supertest": "^6.0.2",
-    "prisma": "^5.19.1",
     "supertest": "^7.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.4",
     "vitest": "^2.0.5"
   }
 }
