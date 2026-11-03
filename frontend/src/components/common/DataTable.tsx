@@ -57,9 +57,9 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={`w-full overflow-x-auto rounded-lg border border-border bg-surface ${className}`}>
+    <div className={`w-full overflow-x-auto rounded-xl border border-border bg-surface shadow-xs ${className}`}>
       <table className="w-full text-left border-collapse text-xs">
-        <thead className="bg-[#F7F8FA] border-b border-border text-text-secondary sticky top-0 z-10 select-none">
+        <thead className="bg-surface-muted border-b border-border text-text-secondary sticky top-0 z-10 select-none">
           <tr>
             {columns.map((col) => {
               const isSorted = sortColumn === col.key;
@@ -68,7 +68,7 @@ export function DataTable<T>({
                   key={col.key}
                   style={{ width: col.width }}
                   onClick={() => handleSort(col)}
-                  className={`px-4 py-3 font-semibold text-[11px] uppercase tracking-wider ${
+                  className={`px-4 py-3 font-bold text-[10px] uppercase tracking-wider ${
                     col.align === 'right'
                       ? 'text-right'
                       : col.align === 'center'
@@ -76,7 +76,7 @@ export function DataTable<T>({
                       : 'text-left'
                   } ${
                     col.sortable
-                      ? 'cursor-pointer hover:bg-[#EEF0F4] hover:text-text-primary transition-colors'
+                      ? 'cursor-pointer hover:bg-surface-hover hover:text-text-primary transition-colors'
                       : ''
                   } ${col.className || ''}`}
                 >
@@ -117,8 +117,8 @@ export function DataTable<T>({
                   onRowClick ? 'cursor-pointer' : ''
                 } ${
                   isUrgent
-                    ? 'bg-[#FEF3F2]/40 hover:bg-[#FEE4E2]/50 border-l-4 border-l-[#D92D20]'
-                    : 'hover:bg-[#F9FAFB]'
+                    ? 'bg-rose-500/10 hover:bg-rose-500/15 border-l-4 border-l-rose-600'
+                    : 'hover:bg-surface-hover'
                 }`}
               >
                 {columns.map((col) => (

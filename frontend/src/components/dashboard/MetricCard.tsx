@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card } from '../common/Card';
 
 export interface MetricCardProps {
   title: string;
@@ -19,26 +18,32 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   className = '',
 }) => {
   return (
-    <Card className={`relative overflow-hidden ${className}`}>
+    <div
+      className={`stat-card relative overflow-hidden transition-all duration-200 ${className}`}
+    >
       {accentColor && (
         <div
           className="absolute top-0 left-0 right-0 h-1"
           style={{ backgroundColor: accentColor }}
         />
       )}
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-xs font-medium text-text-secondary">{title}</span>
-        {icon && <span className="text-text-muted">{icon}</span>}
+      <div className="flex-1 min-w-0 pr-3">
+        <div className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">
+          {title}
+        </div>
+        <div className="text-2xl lg:text-[26px] font-extrabold text-text-primary tracking-tight leading-tight mt-1">
+          {value}
+        </div>
+        {description && (
+          <p className="text-[11px] text-text-muted mt-1 truncate">{description}</p>
+        )}
       </div>
 
-      {/* Major numerical metrics: 28px */}
-      <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1">
-        {value}
-      </div>
-
-      {description && (
-        <p className="text-[11px] text-text-muted">{description}</p>
+      {icon && (
+        <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center flex-shrink-0 shadow-xs">
+          {icon}
+        </div>
       )}
-    </Card>
+    </div>
   );
 };

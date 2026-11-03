@@ -9,7 +9,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Card: React.FC<CardProps> = ({ children, className = '', noPadding = false, ...props }) => {
   return (
     <div
-      className={`bg-surface border border-border rounded-lg ${
+      className={`bg-surface border border-border rounded-xl shadow-xs transition-shadow duration-200 ${
         noPadding ? '' : 'p-4 md:p-5'
       } ${className}`}
       {...props}
@@ -27,7 +27,7 @@ export const CardHeader: React.FC<{
 }> = ({ title, subtitle, action, className = '' }) => (
   <div className={`flex items-start justify-between pb-3 border-b border-border mb-4 ${className}`}>
     <div>
-      <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+      <h3 className="text-sm font-bold tracking-tight text-text-primary">{title}</h3>
       {subtitle && <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>}
     </div>
     {action && <div>{action}</div>}

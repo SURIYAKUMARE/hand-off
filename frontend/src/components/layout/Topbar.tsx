@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../common/Button';
-import { PlusCircle, Search, WifiOff, RefreshCw } from 'lucide-react';
+import { PlusCircle, Search, WifiOff, RefreshCw, Sun, Moon, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useNetwork } from '../../context/NetworkContext';
 import { NotificationCenter } from './NotificationCenter';
 
@@ -14,10 +15,12 @@ export const Topbar: React.FC<TopbarProps> = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isOnline, isSyncing, pendingCount, triggerSync } = useNetwork();
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="h-14 bg-surface border-b border-border sticky top-0 z-20 px-4 md:px-8 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-4 flex-1 max-w-md">
+    <header className="h-14 bg-header-bg backdrop-blur-md border-b border-header-border sticky top-0 z-30 px-4 md:px-6 flex items-center justify-between gap-4 transition-colors duration-200">
+      {/* Left: Quick Search */}
+      <div className="flex items-center gap-3 flex-1 max-w-sm">
         <button
           type="button"
           onClick={() => {
@@ -29,15 +32,29 @@ export const Topbar: React.FC<TopbarProps> = () => {
               navigate('/employee/tickets');
             }
           }}
-          className="w-full max-w-xs h-8 px-3 rounded-lg border border-border bg-[#F7F8FA] hover:bg-[#F2F4F7] text-text-muted hover:text-text-primary text-xs flex items-center gap-2 transition-colors cursor-pointer text-left"
+          className="w-full h-8 px-3 rounded-lg border border-border bg-surface hover:bg-surface-muted text-text-muted hover:text-text-primary text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer text-left"
           aria-label="Quick search tickets"
         >
           <Search className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
-          <span className="truncate">Quick search (ID or title)...</span>
+          <span className="truncate">Quick search (Ticket ID, subject)...</span>
+          <span className="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-muted border border-border text-text-muted hidden sm:inline-block">
+            ⌘K
+          </span>
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* Center: Institutional Meta Status (Desktop) */}
+      <div className="hidden lg:flex items-center gap-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+          <span className="live-indicator-dot" />
+          <span>Operational</span>
+          <span className="opacity-40">•</span>
+          <span className="font-mono text-[10px]">ISO 20000 SLA 99.8%</span>
+        </div>
+      </div>
+
+      {/* Right: Actions, Theme Switcher, Notifications, Network, Role Badge */}
+      <div className="flex items-center gap-2 sm:gap-2.5">
         {user?.role === 'EMPLOYEE' && (
           <Button
             variant="primary"
@@ -49,40 +66,64 @@ export const Topbar: React.FC<TopbarProps> = () => {
           </Button>
         )}
 
+        {/* Theme Toggle Button (Niyam AI signature feature) */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="theme-toggle-btn"
+          title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+          aria-label="Toggle Theme"
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+          ) : (
+            <Moon className="w-4 h-4 text-text-secondary hover:-rotate-12 transition-transform" />
+          )}
+        </button>
+
         {/* In-App Notifications */}
         <NotificationCenter />
 
-        {/* Dynamic Network Status Indicator */}
+        {/* Network & Sync Indicator */}
         {!isOnline ? (
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FEF0C7] border border-[#FEDF89] text-[11px] font-medium text-[#7A2E0E] cursor-default"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-semibold text-amber-700 dark:text-amber-300 cursor-default shadow-xs"
             title="Application is working offline. All changes are stored locally in outbox."
           >
-            <WifiOff className="w-3 h-3 text-[#B54708]" />
-            <span>Offline {pendingCount > 0 ? `(${pendingCount} pending)` : '(Cached)'}</span>
+            <WifiOff className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+            <span className="hidden sm:inline">Offline</span>
+            <span>{pendingCount > 0 ? `(${pendingCount})` : ''}</span>
           </div>
         ) : isSyncing ? (
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#EFF8FF] border border-[#B2DDFF] text-[11px] font-medium text-[#175CD3]"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand/10 border border-brand/25 text-[11px] font-semibold text-brand shadow-xs"
             title="Synchronizing queued offline changes with the server..."
           >
-            <RefreshCw className="w-3 h-3 animate-spin text-[#175CD3]" />
-            <span>Syncing ({pendingCount})...</span>
+            <RefreshCw className="w-3 h-3 animate-spin text-brand" />
+            <span className="hidden sm:inline">Syncing ({pendingCount})...</span>
           </div>
         ) : pendingCount > 0 ? (
           <button
             type="button"
             onClick={() => triggerSync()}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#EFF8FF] hover:bg-[#D1E9FF] border border-[#B2DDFF] text-[11px] font-medium text-[#175CD3] transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand/10 hover:bg-brand/20 border border-brand/30 text-[11px] font-semibold text-brand transition-colors cursor-pointer shadow-xs"
             title="Click to manually synchronize queued items"
           >
-            <RefreshCw className="w-3 h-3 text-[#175CD3]" />
-            <span>Sync {pendingCount} pending</span>
+            <RefreshCw className="w-3 h-3 text-brand" />
+            <span>Sync {pendingCount}</span>
           </button>
         ) : (
-          <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#ECFDF3] border border-[#A6F4C5] text-[11px] font-medium text-[#027A48]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#12B76A] animate-pulse" />
-            <span>System Healthy</span>
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-border text-[11px] font-semibold text-text-secondary shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-[11px]">Synced</span>
+          </div>
+        )}
+
+        {/* Role Monospace Badge */}
+        {user?.role && (
+          <div className="hidden md:inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold font-mono tracking-wider uppercase bg-surface-muted text-text-secondary border border-border shadow-xs">
+            <ShieldCheck className="w-3 h-3 text-brand" />
+            <span>{user.role}</span>
           </div>
         )}
       </div>

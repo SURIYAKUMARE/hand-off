@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { NetworkProvider } from './context/NetworkContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { AppShell } from './components/layout/AppShell';
 import { Login } from './pages/Login';
 import { MyTickets } from './pages/employee/MyTickets';
@@ -102,8 +103,9 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ToastProvider>
-          <NetworkProvider>
-            <BrowserRouter>
+          <ThemeProvider>
+            <NetworkProvider>
+              <BrowserRouter>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
@@ -286,9 +288,10 @@ export const App: React.FC = () => {
               </Routes>
             </BrowserRouter>
           </NetworkProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+        </ThemeProvider>
+      </ToastProvider>
+    </AuthProvider>
+  </QueryClientProvider>
   );
 };
 

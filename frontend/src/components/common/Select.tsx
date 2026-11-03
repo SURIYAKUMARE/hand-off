@@ -43,8 +43,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                   ? 'border-priority-urgent focus:border-priority-urgent focus:ring-1 focus:ring-priority-urgent'
                   : 'border-border focus:border-brand focus:ring-1 focus:ring-brand'
               }
-              disabled:bg-[#F2F4F7] disabled:text-text-muted disabled:cursor-not-allowed
+              disabled:bg-surface-muted disabled:text-text-muted disabled:cursor-not-allowed
               outline-none
+              shadow-xs
               ${className}`}
             {...props}
           >

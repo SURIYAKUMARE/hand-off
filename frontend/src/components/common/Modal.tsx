@@ -85,7 +85,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-none transition-opacity"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -94,11 +94,11 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`w-full ${maxWidthStyles[maxWidth]} bg-surface rounded-lg border border-border shadow-modal overflow-hidden animate-in fade-in zoom-in-95 duration-150 outline-none`}
+        className={`w-full ${maxWidthStyles[maxWidth]} bg-surface rounded-2xl border border-border shadow-modal overflow-hidden animate-in fade-in zoom-in-95 duration-150 outline-none`}
       >
-        <div className="flex items-start justify-between p-4 border-b border-border">
+        <div className="flex items-start justify-between p-4 border-b border-border bg-surface-muted">
           <div>
-            <h3 id="modal-title" className="text-sm font-semibold text-text-primary">
+            <h3 id="modal-title" className="text-sm font-bold tracking-tight text-text-primary">
               {title}
             </h3>
             {description && (
@@ -110,14 +110,14 @@ export const Modal: React.FC<ModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-text-muted hover:text-text-primary p-1 rounded-md transition-colors"
+            className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-hover transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-4">{children}</div>
+        <div className="p-4 md:p-5">{children}</div>
       </div>
     </div>
   );

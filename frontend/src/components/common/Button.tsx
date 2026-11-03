@@ -25,21 +25,21 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-brand focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none';
+      'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-150 focus-visible:outline-2 focus-visible:outline-brand focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
 
     const sizeStyles = {
       sm: 'h-8 px-2.5 text-xs gap-1.5',
-      md: 'h-9 px-3.5 text-xs font-semibold gap-2',
-      lg: 'h-10 px-4 text-sm font-semibold gap-2',
+      md: 'h-9 px-3.5 text-xs gap-2',
+      lg: 'h-10 px-4 text-sm gap-2 rounded-xl',
     };
 
     const variantStyles = {
-      primary: 'bg-brand hover:bg-brand-hover text-white active:bg-brand-active border border-transparent shadow-sm',
+      primary: 'bg-brand hover:bg-brand-hover text-white active:bg-brand-active border border-transparent shadow-xs',
       secondary:
-        'bg-surface hover:bg-background text-text-primary border border-border hover:border-[#D0D5DD] active:bg-[#F2F4F7]',
+        'bg-surface hover:bg-surface-hover text-text-primary border border-border hover:border-border-strong active:bg-surface-muted shadow-xs',
       destructive:
-        'bg-[#D92D20] hover:bg-[#B42318] text-white active:bg-[#912018] border border-transparent shadow-sm',
-      ghost: 'bg-transparent hover:bg-[#F2F4F7] text-text-secondary hover:text-text-primary',
+        'bg-rose-600 hover:bg-rose-700 text-white active:bg-rose-800 border border-transparent shadow-xs',
+      ghost: 'bg-transparent hover:bg-surface-hover text-text-secondary hover:text-text-primary',
     };
 
     return (

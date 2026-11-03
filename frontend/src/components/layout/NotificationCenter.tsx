@@ -111,24 +111,24 @@ export const NotificationCenter: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-[#F2F4F7] transition-colors cursor-pointer"
+        className="relative p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover border border-border bg-surface shadow-xs transition-colors cursor-pointer"
         aria-label="View notifications"
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#D92D20] text-white text-[10px] font-bold flex items-center justify-center leading-none">
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-xs">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-border rounded-lg shadow-lg z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
-          <div className="p-3 border-b border-border flex items-center justify-between bg-[#FDFDFE]">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface border border-border rounded-xl shadow-modal z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="p-3 border-b border-border flex items-center justify-between bg-surface-muted">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-xs text-text-primary">Notifications</span>
+              <span className="font-bold text-xs text-text-primary tracking-tight">Notifications</span>
               {unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-brand/10 text-brand">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-brand/15 text-brand border border-brand/20">
                   {unreadCount} unread
                 </span>
               )}
@@ -137,7 +137,7 @@ export const NotificationCenter: React.FC = () => {
               <button
                 type="button"
                 onClick={markAllAsRead}
-                className="text-[11px] text-brand hover:underline font-medium flex items-center gap-1 cursor-pointer"
+                className="text-[11px] text-brand hover:underline font-semibold flex items-center gap-1 cursor-pointer"
               >
                 <Check className="w-3 h-3" />
                 Mark all read
@@ -148,7 +148,7 @@ export const NotificationCenter: React.FC = () => {
           <div className="max-h-80 overflow-y-auto divide-y divide-border">
             {notifications.length === 0 ? (
               <div className="py-8 px-4 text-center">
-                <Bell className="w-6 h-6 text-text-muted mx-auto mb-2 opacity-50" />
+                <Bell className="w-6 h-6 text-text-muted mx-auto mb-2 opacity-40" />
                 <p className="text-xs text-text-muted">No notifications yet.</p>
               </div>
             ) : (
@@ -156,29 +156,29 @@ export const NotificationCenter: React.FC = () => {
                 <div
                   key={item.id}
                   onClick={() => markAsRead(item.id, item.link)}
-                  className={`p-3 text-left transition-colors cursor-pointer hover:bg-[#F9FAFB] flex gap-3 ${
-                    !item.isRead ? 'bg-[#F5F8FF]' : 'bg-white'
+                  className={`p-3 text-left transition-colors cursor-pointer hover:bg-surface-hover flex gap-3 ${
+                    !item.isRead ? 'bg-brand/5 dark:bg-brand/10' : 'bg-surface'
                   }`}
                 >
-                  <div className="flex-shrink-0 mt-0.5">
+                  <div className="flex-shrink-0 mt-1">
                     <span
                       className={`w-2 h-2 rounded-full block ${
-                        !item.isRead ? 'bg-brand' : 'bg-transparent'
+                        !item.isRead ? 'bg-brand shadow-xs' : 'bg-transparent'
                       }`}
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-text-primary truncate">
+                    <div className="text-xs font-semibold text-text-primary truncate">
                       {item.title}
                     </div>
                     <div className="text-xs text-text-secondary mt-0.5 line-clamp-2">
                       {item.message}
                     </div>
-                    <div className="text-[11px] text-text-muted mt-1 flex items-center gap-1">
+                    <div className="text-[10px] text-text-muted mt-1.5 flex items-center gap-1 font-mono">
                       <Clock className="w-3 h-3" />
                       <span>{formatTime(item.createdAt)}</span>
                       {item.link && (
-                        <span className="ml-auto text-brand text-[10px] flex items-center gap-0.5">
+                        <span className="ml-auto text-brand text-[10px] font-sans font-medium flex items-center gap-0.5">
                           View <ExternalLink className="w-2.5 h-2.5" />
                         </span>
                       )}
