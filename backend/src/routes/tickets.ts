@@ -24,10 +24,17 @@ import {
 
 const router = Router();
 
-// Ensure attachments directory exists
-const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/attachments');
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// Ensure attachments directory exists (use /tmp in serverless / Vercel environments)
+const UPLOAD_DIR = process.env.VERCEL
+  ? path.join('/tmp', 'uploads', 'attachments')
+  : path.resolve(__dirname, '../../uploads/attachments');
+
+try {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn('Upload directory initialization notice:', e);
 }
 
 // Multer storage configuration
