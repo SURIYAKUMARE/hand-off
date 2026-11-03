@@ -54,5 +54,11 @@ module.exports = (req, res) => {
   if (!application) {
     return res.status(500).json({ error: 'Backend application failed to initialize.' });
   }
+
+  const matchedPath = req.headers['x-vercel-matched-path'] || req.headers['x-matched-path'];
+  if (matchedPath && (req.url === '/api' || req.url === '/api/index' || req.url === '/api/index.js')) {
+    req.url = matchedPath;
+  }
+
   return application(req, res);
 };

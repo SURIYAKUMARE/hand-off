@@ -40,19 +40,31 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 
-// Mount API routes
+// Mount API routes (supports both direct /api/* and stripped /* from serverless rewrites)
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/tickets', ticketRoutes);
 app.use('/api/tickets', commentRoutes);
+app.use('/tickets', commentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/dashboard', dashboardRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/admin', adminRoutes);
 app.use('/api/departments', departmentsRoutes);
+app.use('/departments', departmentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/notifications', notificationsRoutes);
 app.use('/api/knowledge-base', knowledgeBaseRoutes);
+app.use('/knowledge-base', knowledgeBaseRoutes);
 app.use('/api/assets', assetsRoutes);
+app.use('/assets', assetsRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/profile', profileRoutes);
 app.use('/api', userRoutes);
+app.use('/', userRoutes);
 app.use('/api', healthRoutes);
+app.use('/', healthRoutes);
 
 // 404 Handler for undefined API routes
 app.use('/api/*', (_req, res) => {
