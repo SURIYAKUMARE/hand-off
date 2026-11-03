@@ -4,8 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/common/Button';
-import { TextInput } from '../components/common/TextInput';
-import { PasswordInput } from '../components/common/PasswordInput';
 import {
   LifeBuoy,
   AlertCircle,
@@ -16,9 +14,45 @@ import {
   Moon,
   CheckCircle2,
   Lock,
-  Server,
-  Zap,
+  User as UserIcon,
+  Eye,
+  EyeOff,
+  Sparkles,
+  ArrowLeft,
+  KeyRound,
 } from 'lucide-react';
+
+interface DemoPersona {
+  id: 'admin' | 'technician' | 'employee';
+  label: string;
+  name: string;
+  email: string;
+  roleBadge: string;
+}
+
+const DEMO_PERSONAS: DemoPersona[] = [
+  {
+    id: 'admin',
+    label: 'Admin',
+    name: 'Vikram Aditya',
+    email: 'admin@helpdesk.local',
+    roleBadge: 'LEVEL 4 · ADMIN',
+  },
+  {
+    id: 'technician',
+    label: 'Technician',
+    name: 'Arjun Mehta',
+    email: 'arjun.mehta@helpdesk.local',
+    roleBadge: 'LEVEL 3 · TECH',
+  },
+  {
+    id: 'employee',
+    label: 'Employee',
+    name: 'Priya Nair',
+    email: 'priya.nair@helpdesk.local',
+    roleBadge: 'LEVEL 1 · STAFF',
+  },
+];
 
 export const Login: React.FC = () => {
   const { login, user } = useAuth();
@@ -27,8 +61,10 @@ export const Login: React.FC = () => {
   const toast = useToast();
   const { theme, toggleTheme } = useTheme();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [selectedPersona, setSelectedPersona] = useState<DemoPersona>(DEMO_PERSONAS[0]);
+  const [email, setEmail] = useState('admin@helpdesk.local');
+  const [password, setPassword] = useState('Password123!');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,22 +82,21 @@ export const Login: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (loginEmail: string, loginPass: string) => {
     setErrorMessage(null);
 
-    if (!email.trim()) {
-      setErrorMessage('Enter your email address.');
+    if (!loginEmail.trim()) {
+      setErrorMessage('Enter your username or official email.');
       return;
     }
-    if (!password) {
+    if (!loginPass) {
       setErrorMessage('Enter your password.');
       return;
     }
 
     try {
       setIsLoading(true);
-      const authenticatedUser = await login(email.trim(), password, rememberMe);
+      const authenticatedUser = await login(loginEmail.trim(), loginPass, rememberMe);
       toast.success(`Welcome back, ${authenticatedUser.name}!`);
 
       const defaultDest =
@@ -80,210 +115,251 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleFillDemo = (demoEmail: string) => {
-    setEmail(demoEmail);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    performLogin(email, password);
+  };
+
+  const handleSelectPersona = (persona: DemoPersona) => {
+    setSelectedPersona(persona);
+    setEmail(persona.email);
     setPassword('Password123!');
     setErrorMessage(null);
   };
 
+  const handleInstantDemoLogin = () => {
+    performLogin(selectedPersona.email, 'Password123!');
+  };
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background text-text-primary selection:bg-brand-light selection:text-brand">
-      {/* Top Floating Theme Switcher on Mobile/Tablet */}
-      <div className="absolute top-4 right-4 z-50">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="theme-toggle-btn"
-          title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
-          aria-label="Toggle Theme"
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400" />
-          ) : (
-            <Moon className="w-4 h-4 text-text-secondary" />
-          )}
-        </button>
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 sm:p-6 overflow-x-hidden selection:bg-brand-light selection:text-brand">
+      {/* Fullscreen Backdrop Office Image from Niyam AI */}
+      <div className="fixed inset-0 z-0 pointer-events-none select-none">
+        <img
+          src="/images/office-bg.png"
+          alt="HelpDesk 360 Office Headquarters"
+          className="w-full h-full object-cover object-center filter brightness-[0.98] contrast-[1.03]"
+        />
+        {/* Subtle dark vignette gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-900/35 to-slate-950/65 dark:from-slate-950/90 dark:via-slate-950/60 dark:to-slate-950/80" />
       </div>
 
-      {/* Left Panel: Executive Institutional Brand Panel (Niyam AI style) */}
-      <div className="w-full md:w-5/12 lg:w-4/12 bg-[#0F172A] text-white p-8 md:p-12 lg:p-14 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-800 relative overflow-hidden">
-        {/* Subtle decorative radial gradient */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Floating Center Glassmorphic Card (Exact Niyam Design) */}
+      <div className="relative z-10 w-full max-w-[460px] bg-surface/95 dark:bg-surface/90 backdrop-blur-xl rounded-2xl border border-white/60 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-4 my-6 transition-all duration-200">
+        
+        {/* Top Control Header Row */}
+        <div className="flex items-center justify-between gap-2 pb-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('admin@helpdesk.local');
+              setPassword('Password123!');
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-surface-muted border border-border text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors shadow-xs"
+          >
+            <ArrowLeft className="w-3 h-3 text-text-muted" />
+            <span>Portal Home</span>
+          </button>
 
-        <div className="relative z-10">
-          {/* Brand Row with Emblem + Monospace Tag */}
-          <div className="flex items-center gap-3 mb-10">
-            <div className="relative w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center flex-shrink-0 shadow-md">
-              <LifeBuoy className="w-5 h-5 text-blue-400" />
-              <span className="live-indicator-dot absolute -top-1 -right-1" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-tight text-white">
-                  HelpDesk <span className="text-blue-400">360</span>
-                </span>
-                <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  v2.4
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                Enterprise ITSM Gateway
-              </p>
-            </div>
+          {/* Live Operational Status Pill */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>ITSM Core Online</span>
           </div>
 
-          <div className="space-y-4">
-            <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight">
-              Enterprise service management, structured from issue to resolution.
-            </h1>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Engineered with ITIL SLA enforcement, offline-first sync architecture, multi-department queues, and automated technician assignment.
-            </p>
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="theme-toggle-btn !p-1.5"
+            title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+            aria-label="Toggle Theme"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-text-secondary" />
+            )}
+          </button>
+        </div>
+
+        {/* Brand Emblem & Headings */}
+        <div className="text-center pt-1 pb-1">
+          <div className="inline-flex items-center justify-center relative w-12 h-12 rounded-xl bg-surface border border-border shadow-md mb-2">
+            <LifeBuoy className="w-6 h-6 text-brand" />
+            <span className="live-indicator-dot absolute -top-1 -right-1" />
+          </div>
+          <div className="text-[11px] font-bold text-brand uppercase tracking-wider">
+            Enterprise IT Service Management
+          </div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-text-primary tracking-tight mt-0.5">
+            HelpDesk 360 Portal
+          </h1>
+          <p className="text-[11px] text-text-secondary font-medium mt-0.5">
+            ITIL Incident Triaging & SLA Compliance Management
+          </p>
+        </div>
+
+        {/* Quick Demo Persona Bar (Signature Niyam UI Component) */}
+        <div className="p-3 rounded-xl bg-surface-muted/90 border border-border space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 font-bold text-text-primary text-[11px]">
+              <Sparkles className="w-3.5 h-3.5 text-brand" />
+              <span>Quick Demo Persona</span>
+            </div>
+            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-brand/10 text-brand border border-brand/20">
+              PW: Password123!
+            </span>
           </div>
 
-          {/* Institutional Highlights */}
-          <div className="mt-8 space-y-3 pt-6 border-t border-slate-800">
-            <div className="flex items-center gap-2.5 text-xs text-slate-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Real-time multi-tenant ticket triaging</span>
+          {/* Persona Pills */}
+          <div className="grid grid-cols-3 gap-1.5">
+            {DEMO_PERSONAS.map((p) => {
+              const isSelected = selectedPersona.id === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleSelectPersona(p)}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                    isSelected
+                      ? 'bg-brand text-white shadow-xs'
+                      : 'bg-surface hover:bg-surface-hover text-text-secondary border border-border'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selected Persona Info Tag */}
+          <div className="flex items-center justify-between pt-1 text-[11px]">
+            <div className="truncate font-semibold text-text-primary">
+              <span className="font-bold">{selectedPersona.name}</span>{' '}
+              <span className="text-text-muted font-mono text-[10px]">({selectedPersona.id})</span>
             </div>
-            <div className="flex items-center gap-2.5 text-xs text-slate-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Offline outbox synchronization</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-xs text-slate-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Automated SLA breach prevention & escalations</span>
-            </div>
+            <span className="font-mono text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-surface border border-border text-brand flex-shrink-0">
+              {selectedPersona.roleBadge}
+            </span>
           </div>
         </div>
 
-        <div className="relative z-10 pt-8 border-t border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-blue-400 flex-shrink-0" />
-          <span>Role-enforced authentication & audit persistence</span>
-        </div>
-      </div>
+        {/* Error Notification */}
+        {errorMessage && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-600 dark:text-rose-400 animate-in fade-in duration-150 font-medium"
+          >
+            <AlertCircle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">{errorMessage}</div>
+          </div>
+        )}
 
-      {/* Right Panel: Sign-in Form */}
-      <div className="flex-1 flex items-center justify-center p-6 md:p-12 lg:p-16">
-        <div className="w-full max-w-md space-y-6">
-          <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-brand/10 text-brand border border-brand/20 mb-3">
-              <Lock className="w-3 h-3" />
-              <span>Authorized Enterprise Access</span>
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Username / Official ID */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-text-primary">
+              Username / Official Email
+            </label>
+            <div className="relative flex items-center">
+              <UserIcon className="w-4 h-4 text-text-muted absolute left-3 pointer-events-none" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="official.email@helpdesk.local"
+                required
+                disabled={isLoading}
+                className="w-full h-9 pl-9 pr-3 rounded-xl border border-border bg-surface text-xs text-text-primary placeholder:text-text-muted focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all shadow-xs"
+              />
             </div>
-            <h2 className="text-2xl font-extrabold text-text-primary tracking-tight">
-              Sign in to your account
-            </h2>
-            <p className="text-xs text-text-secondary mt-1">
-              Enter your corporate email and credentials to access your support workspace.
-            </p>
           </div>
 
-          {errorMessage && (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-600 dark:text-rose-400 animate-in fade-in duration-150"
-            >
-              <AlertCircle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
-              <div className="flex-1 font-medium">{errorMessage}</div>
+          {/* Password */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <label className="font-bold text-text-primary">Password</label>
+              <span className="font-mono text-[10px] text-brand font-semibold">
+                PW: Password123!
+              </span>
             </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <TextInput
-              label="Corporate Email Address"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="name@helpdesk.local"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
-
-            <PasswordInput
-              label="Account Password"
-              autoComplete="current-password"
-              required
-              placeholder="••••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-            />
-
-            <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-text-secondary font-medium">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-border text-brand focus:ring-brand focus:ring-offset-0"
-                />
-                <span>Keep me signed in</span>
-              </label>
-              <span className="text-[11px] text-text-muted">ISO 20000 Compliant</span>
+            <div className="relative flex items-center">
+              <Lock className="w-4 h-4 text-text-muted absolute left-3 pointer-events-none" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                required
+                disabled={isLoading}
+                className="w-full h-9 pl-9 pr-9 rounded-xl border border-border bg-surface text-xs text-text-primary placeholder:text-text-muted focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all shadow-xs font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 text-text-muted hover:text-text-primary p-1 cursor-pointer"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
             </div>
+          </div>
 
+          {/* Remember session checkbox */}
+          <div className="flex items-center justify-between text-xs pt-0.5">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-text-secondary font-medium">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="rounded border-border text-brand focus:ring-brand focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-[11px]">Remember active session</span>
+            </label>
+            <span className="text-[10px] text-text-muted font-mono">256-Bit TLS</span>
+          </div>
+
+          {/* Action Buttons (Primary & Instant Demo) */}
+          <div className="space-y-2 pt-1">
             <Button
               type="submit"
               variant="primary"
-              size="lg"
-              className="w-full font-bold shadow-sm"
+              size="md"
+              className="w-full font-bold shadow-xs flex items-center justify-center gap-2"
               isLoading={isLoading}
-              iconRight={<ArrowRight className="w-4 h-4" />}
             >
-              Access Service Desk
+              <ShieldCheck className="w-4 h-4" />
+              <span>Continue to Service Desk</span>
             </Button>
-          </form>
 
-          {/* Demo Accounts Helper Panel */}
-          <div className="pt-4 border-t border-border">
-            <div className="text-[10px] font-extrabold text-text-muted uppercase tracking-wider mb-2.5">
-              Quick Role Switcher (Pre-fills verified credentials)
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleFillDemo('admin@helpdesk.local')}
-                className="flex items-start gap-2 p-2 text-left rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-brand/40 transition-all shadow-xs cursor-pointer"
-              >
-                <ShieldCheck className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-text-primary truncate">Vikram Aditya</div>
-                  <div className="text-[10px] text-text-muted font-medium truncate">Administrator</div>
-                </div>
-              </button>
+            <button
+              type="button"
+              onClick={handleInstantDemoLogin}
+              disabled={isLoading}
+              className="w-full py-2 px-3 rounded-xl border border-border bg-surface hover:bg-surface-hover text-text-primary text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-brand" />
+              <span>Instant Demo Access (Skip Input)</span>
+            </button>
+          </div>
+        </form>
 
-              <button
-                type="button"
-                onClick={() => handleFillDemo('arjun.mehta@helpdesk.local')}
-                className="flex items-start gap-2 p-2 text-left rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-brand/40 transition-all shadow-xs cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-text-primary truncate">Arjun Mehta</div>
-                  <div className="text-[10px] text-text-muted font-medium truncate">Technician</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleFillDemo('priya.nair@helpdesk.local')}
-                className="flex items-start gap-2 p-2 text-left rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-brand/40 transition-all shadow-xs cursor-pointer"
-              >
-                <UserCheck className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-text-primary truncate">Priya Nair</div>
-                  <div className="text-[10px] text-text-muted font-medium truncate">Employee</div>
-                </div>
-              </button>
-            </div>
-            <p className="text-[11px] text-text-muted mt-2 text-center">
-              Click any profile above to instantly test permissions and views.
-            </p>
+        {/* Statutory & Security Footer Bar */}
+        <div className="pt-2 text-center border-t border-border space-y-1">
+          <div className="text-[10px] text-text-muted font-medium flex items-center justify-center gap-2">
+            <span>🛡️ 256-Bit TLS</span>
+            <span>•</span>
+            <span>Role Enforced Access</span>
+            <span>•</span>
+            <span>ISO 20000 ITIL Compliant</span>
+          </div>
+          <div className="text-[9px] text-text-muted font-mono">
+            HelpDesk 360 Enterprise ITSM Platform · Release v2.4
           </div>
         </div>
+
       </div>
     </div>
   );
