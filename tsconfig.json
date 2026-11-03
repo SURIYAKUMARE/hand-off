@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@helpdesk360/shared": ["shared/src/index.ts"],
+      "@/*": ["frontend/src/*"]
+    }
+  },
+  "references": [
+    { "path": "./shared" },
+    { "path": "./frontend" },
+    { "path": "./backend" }
+  ]
+}
