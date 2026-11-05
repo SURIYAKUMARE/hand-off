@@ -262,3 +262,51 @@
   color: var(--accent);
   border: 1px solid var(--accent-muted);
 }
+
+/* ============================================================================
+   Navigation Micro-Interactions & Hardware-Accelerated Animations
+============================================================================ */
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-6deg); }
+}
+
+@keyframes subtle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes nav-pill-in {
+  from {
+    transform: scaleY(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-bell-ring {
+  animation: bell-ring 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.animate-subtle-float {
+  animation: subtle-float 3.5s ease-in-out infinite;
+}
+
+.animate-nav-pill {
+  animation: nav-pill-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Smooth Navigation Easing Curves */
+.sidebar-transition {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-link-transition {
+  transition: background-color 0.18s ease-out, color 0.18s ease-out, transform 0.18s ease-out, box-shadow 0.18s ease-out;
+}

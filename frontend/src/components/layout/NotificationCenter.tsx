@@ -111,19 +111,23 @@ export const NotificationCenter: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover border border-border bg-surface shadow-xs transition-colors cursor-pointer"
+        className="group relative p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover border border-border bg-surface shadow-xs transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
         aria-label="View notifications"
       >
-        <Bell className="w-4 h-4" />
+        <Bell
+          className={`w-4 h-4 transition-transform duration-300 ${
+            unreadCount > 0 ? 'group-hover:animate-bell-ring text-brand' : 'group-hover:scale-110'
+          }`}
+        />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-xs">
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-xs animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface border border-border rounded-xl shadow-modal z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface border border-border rounded-xl shadow-modal z-50 overflow-hidden animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200 ease-out">
           <div className="p-3 border-b border-border flex items-center justify-between bg-surface-muted">
             <div className="flex items-center gap-2">
               <span className="font-bold text-xs text-text-primary tracking-tight">Notifications</span>

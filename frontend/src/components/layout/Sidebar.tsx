@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
 
   return (
     <aside
-      className={`h-screen sticky top-0 flex flex-col justify-between bg-sidebar-bg border-r border-sidebar-border transition-all duration-200 z-40 select-none shadow-xs ${
+      className={`h-screen sticky top-0 flex flex-col justify-between bg-sidebar-bg border-r border-sidebar-border sidebar-transition z-40 select-none shadow-xs ${
         isCollapsed ? 'w-16' : 'w-60'
       }`}
     >
@@ -132,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       <div className="flex flex-col flex-1 min-h-0">
         <div className="h-14 flex items-center justify-between px-3.5 border-b border-sidebar-border flex-shrink-0 bg-surface">
           <div
-            className="flex items-center gap-2.5 overflow-hidden cursor-pointer"
+            className="flex items-center gap-2.5 overflow-hidden cursor-pointer group"
             onClick={() => {
               if (user?.role === 'ADMIN') navigate('/admin/dashboard');
               else if (user?.role === 'TECHNICIAN') navigate('/technician/dashboard');
@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
             }}
           >
             {/* Squircle Brand Emblem with Pulsing Live Dot */}
-            <div className="relative w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center flex-shrink-0 shadow-xs overflow-hidden p-0.5">
+            <div className="relative w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center flex-shrink-0 shadow-xs overflow-hidden p-0.5 transition-transform duration-200 group-hover:scale-105 active:scale-95">
               <img
                 src="/images/logo.png"
                 alt="Handoff Logo"
@@ -149,28 +149,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
               <span className="live-indicator-dot absolute -top-1 -right-1" />
             </div>
 
-            {!isCollapsed && (
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-[13px] tracking-tight text-text-primary whitespace-nowrap">
-                    Handoff <span className="text-brand">360</span>
-                  </span>
-                  <span className="brand-tag">v2.4</span>
-                </div>
-                <span className="text-[10px] text-text-muted font-medium truncate uppercase tracking-wider">
-                  Complaint App
+            <div
+              className={`flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+                isCollapsed
+                  ? 'w-0 opacity-0 -translate-x-3 pointer-events-none'
+                  : 'w-auto opacity-100 translate-x-0'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-[13px] tracking-tight text-text-primary whitespace-nowrap">
+                  Handoff <span className="text-brand">360</span>
                 </span>
+                <span className="brand-tag">v2.4</span>
               </div>
-            )}
+              <span className="text-[10px] text-text-muted font-medium truncate uppercase tracking-wider">
+                Complaint App
+              </span>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-muted transition-colors cursor-pointer border border-transparent hover:border-border"
+            className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-muted transition-all duration-200 cursor-pointer border border-transparent hover:border-border active:scale-95"
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            <ChevronLeft
+              className={`w-4 h-4 transition-transform duration-300 ease-in-out ${
+                isCollapsed ? 'rotate-180 text-brand' : 'rotate-0'
+              }`}
+            />
           </button>
         </div>
 
@@ -182,7 +190,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
           {navSections.map((section, idx) => (
             <div key={idx} className="space-y-0.5">
               {!isCollapsed && (
-                <div className="px-2.5 pt-1.5 pb-1 text-[10px] font-extrabold tracking-wider text-text-muted uppercase">
+                <div className="px-2.5 pt-1.5 pb-1 text-[10px] font-extrabold tracking-wider text-text-muted uppercase transition-opacity duration-200">
                   {section.title}
                 </div>
               )}
@@ -193,17 +201,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                     to={link.to}
                     end={link.to === '/technician/queue' || link.to === '/admin/dashboard'}
                     className={({ isActive }) =>
-                      `flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      `relative group flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold nav-link-transition ${
                         isCollapsed ? 'justify-center' : ''
                       } ${
                         isActive
-                          ? 'bg-brand/10 dark:bg-brand/20 text-brand border-l-[3px] border-brand shadow-xs font-bold'
-                          : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary border-l-[3px] border-transparent'
+                          ? 'bg-brand/10 dark:bg-brand/20 text-brand font-bold shadow-xs'
+                          : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                       }`
                     }
                   >
-                    <span className="flex-shrink-0">{link.icon}</span>
-                    {!isCollapsed && <span className="truncate">{link.label}</span>}
+                    {({ isActive }) => (
+                      <>
+                        {/* Animated Active Pill Indicator */}
+                        <span
+                          className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full bg-brand transition-all duration-200 ease-out ${
+                            isActive ? 'h-4 opacity-100 scale-100' : 'h-0 opacity-0 scale-0'
+                          }`}
+                        />
+
+                        {/* Icon with hover micro-interaction */}
+                        <span
+                          className={`flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+                            isActive ? 'text-brand' : 'group-hover:text-text-primary'
+                          }`}
+                        >
+                          {link.icon}
+                        </span>
+
+                        {/* Label with smooth collapse transition */}
+                        {!isCollapsed && (
+                          <span className="truncate transition-transform duration-150 group-hover:translate-x-0.5">
+                            {link.label}
+                          </span>
+                        )}
+                      </>
+                    )}
                   </NavLink>
                 );
 
@@ -225,25 +257,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
                 <NavLink
                   to="/design-system"
                   className={({ isActive }) =>
-                    `flex items-center justify-center p-2 rounded-lg text-xs font-medium transition-colors ${
-                      isActive ? 'bg-brand/10 text-brand' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+                    `flex items-center justify-center p-2 rounded-lg text-xs font-medium nav-link-transition ${
+                      isActive
+                        ? 'bg-brand/10 text-brand'
+                        : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                     }`
                   }
                 >
-                  <Palette className="w-4 h-4" />
+                  <Palette className="w-4 h-4 transition-transform duration-200 hover:rotate-12" />
                 </NavLink>
               </Tooltip>
             ) : (
               <NavLink
                 to="/design-system"
                 className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    isActive ? 'bg-brand/10 text-brand' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+                  `group relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold nav-link-transition ${
+                    isActive
+                      ? 'bg-brand/10 text-brand font-bold'
+                      : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                   }`
                 }
               >
-                <Palette className="w-4 h-4" />
-                <span>Design system</span>
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full bg-brand transition-all duration-200 ease-out ${
+                        isActive ? 'h-4 opacity-100 scale-100' : 'h-0 opacity-0 scale-0'
+                      }`}
+                    />
+                    <Palette className="w-4 h-4 transition-transform duration-200 group-hover:rotate-12 group-hover:text-brand" />
+                    <span className="transition-transform duration-150 group-hover:translate-x-0.5">Design system</span>
+                  </>
+                )}
               </NavLink>
             )}
           </div>
@@ -254,9 +299,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse 
       <div className="p-2 border-t border-sidebar-border bg-surface-muted flex-shrink-0 space-y-2">
         {/* Statutory / Compliance Card (Hidden when collapsed) */}
         {!isCollapsed && (
-          <div className="p-2.5 rounded-lg bg-surface border border-border shadow-xs text-left">
+          <div className="p-2.5 rounded-lg bg-surface border border-border shadow-xs text-left transition-all duration-200 hover:border-brand/30 hover:shadow-sm">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-text-primary">
-              <ShieldCheck className="w-3.5 h-3.5 text-brand flex-shrink-0" />
+              <ShieldCheck className="w-3.5 h-3.5 text-brand flex-shrink-0 animate-subtle-float" />
               <span>SLA Assurance</span>
             </div>
             <p className="text-[10px] text-text-muted mt-0.5 leading-snug">

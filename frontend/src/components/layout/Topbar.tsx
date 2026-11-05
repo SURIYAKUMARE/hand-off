@@ -26,7 +26,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="md:hidden p-1.5 rounded-lg border border-border bg-surface text-text-muted hover:text-text-primary transition-colors cursor-pointer flex-shrink-0"
+            className="md:hidden p-1.5 rounded-lg border border-border bg-surface text-text-muted hover:text-text-primary transition-all duration-200 active:scale-90 cursor-pointer flex-shrink-0 shadow-xs"
             title="Toggle Sidebar"
             aria-label="Toggle navigation menu"
           >
@@ -44,12 +44,14 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
               navigate('/employee/tickets');
             }
           }}
-          className="w-full h-8 px-3 rounded-lg border border-border bg-surface hover:bg-surface-muted text-text-muted hover:text-text-primary text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer text-left"
+          className="group w-full h-8 px-3 rounded-lg border border-border bg-surface hover:bg-surface-muted hover:border-brand/40 text-text-muted hover:text-text-primary text-xs flex items-center gap-2 transition-all duration-200 shadow-xs cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-brand/20"
           aria-label="Quick search tickets"
         >
-          <Search className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
-          <span className="truncate">Quick search (Ticket ID, subject)...</span>
-          <span className="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-muted border border-border text-text-muted hidden sm:inline-block">
+          <Search className="w-3.5 h-3.5 text-text-muted group-hover:text-brand transition-colors duration-200 flex-shrink-0" />
+          <span className="truncate group-hover:text-text-primary transition-colors duration-200">
+            Quick search (Ticket ID, subject)...
+          </span>
+          <span className="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-muted border border-border text-text-muted group-hover:border-brand/30 group-hover:text-brand transition-all duration-200 hidden sm:inline-block shadow-xs">
             ⌘K
           </span>
         </button>
@@ -57,8 +59,11 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
 
       {/* Center: Institutional Meta Status (Desktop) */}
       <div className="hidden lg:flex items-center gap-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-          <span className="live-indicator-dot" />
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition-all duration-300 hover:border-emerald-500/40 hover:shadow-xs shadow-xs">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
           <span>Operational</span>
           <span className="opacity-40">•</span>
           <span className="font-mono text-[10px]">ISO 20000 SLA 99.8%</span>
@@ -72,24 +77,25 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
             variant="primary"
             size="sm"
             onClick={() => navigate('/employee/new-ticket')}
+            className="transition-transform duration-200 active:scale-95"
             iconLeft={<PlusCircle className="w-3.5 h-3.5" />}
           >
             New ticket
           </Button>
         )}
 
-        {/* Theme Toggle Button (Niyam AI signature feature) */}
+        {/* Theme Toggle Button (Niyam AI signature feature) with smooth spin */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="theme-toggle-btn"
+          className="theme-toggle-btn group transition-all duration-300 hover:scale-105 active:scale-95"
           title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
           aria-label="Toggle Theme"
         >
           {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400 hover:rotate-45 transition-transform" />
+            <Sun className="w-4 h-4 text-amber-400 transition-transform duration-500 group-hover:rotate-90" />
           ) : (
-            <Moon className="w-4 h-4 text-text-secondary hover:-rotate-12 transition-transform" />
+            <Moon className="w-4 h-4 text-text-secondary transition-transform duration-500 group-hover:-rotate-45" />
           )}
         </button>
 
