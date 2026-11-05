@@ -290,7 +290,17 @@ export const NewTicket: React.FC = () => {
           className="flex items-start gap-2.5 p-3.5 rounded-lg bg-[#FEF3F2] border border-[#FECDCA] text-xs text-[#B42318]"
         >
           <AlertCircle className="w-4 h-4 text-[#D92D20] mt-0.5 flex-shrink-0" />
-          <div className="flex-1">{generalError}</div>
+          <div className="flex-1">
+            <span>{generalError}</span>
+            {generalError.toLowerCase().includes('sign in') && (
+              <span
+                className="ml-2 font-bold underline hover:text-[#7A1C14] cursor-pointer"
+                onClick={() => navigate('/login')}
+              >
+                Sign in again &rarr;
+              </span>
+            )}
+          </div>
         </div>
       )}
 

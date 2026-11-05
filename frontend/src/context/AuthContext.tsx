@@ -39,9 +39,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(res.user);
       } else {
         setUser(null);
+        localStorage.removeItem('helpdesk360_token');
       }
-    } catch (err) {
+    } catch (err: any) {
       setUser(null);
+      if (err?.status === 401) {
+        localStorage.removeItem('helpdesk360_token');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -52,11 +56,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refetchUser]);
 
   const login = async (email: string, password: string, rememberMe = false): Promise<AuthUser> => {
-    const res = await api.post<{ success: boolean; user: AuthUser }>('/auth/login', {
+    const res = await api.post<{ success: boolean; user: AuthUser; token?: string }>('/auth/login', {
       email,
       password,
       rememberMe,
     });
+    if (res.token) {
+      localStorage.setItem('helpdesk360_token', res.token);
+    }
     setUser(res.user);
     return res.user;
   };
@@ -67,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       // Continue client cleanup even if network fails
     } finally {
+      localStorage.removeItem('helpdesk360_token');
       setUser(null);
     }
   };

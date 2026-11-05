@@ -52,9 +52,10 @@ router.post('/login', loginRateLimiter, validateBody(LoginSchema), async (req, r
     res.cookie(config.sessionCookieName, token, {
       httpOnly: true,
       secure: config.isProduction,
-      sameSite: config.isProduction ? 'strict' : 'lax',
+      sameSite: 'lax',
       path: '/',
-      expires: rememberMe ? expiresAt : undefined, // session cookie if rememberMe not selected
+      expires: expiresAt,
+      maxAge: config.sessionDurationDays * 24 * 60 * 60 * 1000,
     });
 
     return res.json({
