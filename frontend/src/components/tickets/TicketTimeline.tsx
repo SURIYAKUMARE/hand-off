@@ -1,6 +1,6 @@
 import React from 'react';
-import { TicketEventItem } from '@helpdesk360/shared';
-import { CheckCircle2, UserCheck, PlusCircle, MessageSquare, ArrowRightCircle } from 'lucide-react';
+import { PRIORITY_CONFIG, PriorityEnum, TicketEventItem } from '@helpdesk360/shared';
+import { CheckCircle2, UserCheck, PlusCircle, MessageSquare, ArrowRightCircle, Flag } from 'lucide-react';
 
 export interface TicketTimelineProps {
   events: TicketEventItem[];
@@ -33,6 +33,8 @@ export const TicketTimeline: React.FC<TicketTimelineProps> = ({ events }) => {
         return <ArrowRightCircle className="w-3.5 h-3.5 text-[#F79009]" />;
       case 'COMMENTED':
         return <MessageSquare className="w-3.5 h-3.5 text-text-muted" />;
+      case 'PRIORITY_CHANGED':
+        return <Flag className="w-3.5 h-3.5 text-brand" />;
       default:
         return <CheckCircle2 className="w-3.5 h-3.5 text-text-muted" />;
     }
@@ -48,6 +50,13 @@ export const TicketTimeline: React.FC<TicketTimelineProps> = ({ events }) => {
         return `Moved to ${ev.newValue?.replace('_', ' ')}`;
       case 'COMMENTED':
         return 'Comment posted';
+      case 'PRIORITY_CHANGED': {
+        const previous = PriorityEnum.safeParse(ev.oldValue);
+        const current = PriorityEnum.safeParse(ev.newValue);
+        return previous.success && current.success
+          ? `Priority changed from ${PRIORITY_CONFIG[previous.data].label} to ${PRIORITY_CONFIG[current.data].label}`
+          : 'Priority updated';
+      }
       default:
         return 'Ticket updated';
     }

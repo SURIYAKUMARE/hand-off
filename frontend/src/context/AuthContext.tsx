@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api, ApiError } from '../api/client';
 import { UserRole } from '@helpdesk360/shared';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface AuthUser {
   id: string;
@@ -29,41 +30,44 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const refetchUser = useCallback(async () => {
+  const refetchUser = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await api.get<{ success: boolean; user: AuthUser }>('/auth/me');
-      if (res.success && res.user) {
-        setUser(res.user);
-      } else {
+      const res = await api.get<{ success: boolean; user: AuthUser }>('/auth/me', { signal, cache: 'no-store' });
+      if (!signal?.aborted) setUser(res?.success ? res.user : null);
+    } catch (err) {
+      if (!signal?.aborted && err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         setUser(null);
-        localStorage.removeItem('helpdesk360_token');
-      }
-    } catch (err: any) {
-      setUser(null);
-      if (err?.status === 401) {
-        localStorage.removeItem('helpdesk360_token');
       }
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refetchUser();
+    const request = new AbortController();
+    try {
+      localStorage.removeItem('helpdesk360_token');
+    } catch {
+      // Cookie sessions work even if browser storage is disabled.
+    }
+    void refetchUser(request.signal);
+    return () => request.abort();
   }, [refetchUser]);
 
   const login = async (email: string, password: string, rememberMe = false): Promise<AuthUser> => {
-    const res = await api.post<{ success: boolean; user: AuthUser; token?: string }>('/auth/login', {
+    const res = await api.post<{ success: boolean; user: AuthUser }>('/auth/login', {
       email,
       password,
       rememberMe,
     });
-    if (res.token) {
-      localStorage.setItem('helpdesk360_token', res.token);
+    if (!res?.success || !res.user) {
+      throw new ApiError('The sign-in service returned an invalid response.', 502);
     }
+    queryClient.clear();
     setUser(res.user);
     return res.user;
   };
@@ -72,11 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await api.post('/auth/logout');
     } catch (err) {
-      // Continue client cleanup even if network fails
-    } finally {
-      localStorage.removeItem('helpdesk360_token');
-      setUser(null);
+      if (!(err instanceof ApiError) || (err.status !== 401 && err.status !== 403)) throw err;
     }
+    queryClient.clear();
+    setUser(null);
   };
 
   return (

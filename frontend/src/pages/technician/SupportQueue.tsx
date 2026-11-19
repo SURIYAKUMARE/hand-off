@@ -41,7 +41,7 @@ export const SupportQueue: React.FC = () => {
   const [priority, setPriority] = useState<string>(searchParams.get('priority') || 'ALL');
   const [category, setCategory] = useState<string>(searchParams.get('category') || 'ALL');
   const [assigneeId, setAssigneeId] = useState<string>(searchParams.get('assigneeId') || 'ALL');
-  const [sortBy, setSortBy] = useState<string>(searchParams.get('sort') || 'createdAt');
+  const [sortBy, setSortBy] = useState<string>(searchParams.get('sort') || 'priority');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>((searchParams.get('order') as any) || 'desc');
   const [page, setPage] = useState<number>(parseInt(searchParams.get('page') || '1', 10));
   const limit = 20;
@@ -63,7 +63,7 @@ export const SupportQueue: React.FC = () => {
     if (priority !== 'ALL') p.set('priority', priority);
     if (category !== 'ALL') p.set('category', category);
     if (assigneeId !== 'ALL') p.set('assigneeId', assigneeId);
-    if (sortBy !== 'createdAt') p.set('sort', sortBy);
+    if (sortBy !== 'priority') p.set('sort', sortBy);
     if (sortOrder !== 'desc') p.set('order', sortOrder);
     if (page > 1) p.set('page', String(page));
     setSearchParams(p, { replace: true });
@@ -132,7 +132,7 @@ export const SupportQueue: React.FC = () => {
     setPriority('ALL');
     setCategory('ALL');
     setAssigneeId('ALL');
-    setSortBy('createdAt');
+    setSortBy('priority');
     setSortOrder('desc');
     setPage(1);
   };

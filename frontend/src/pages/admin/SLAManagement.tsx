@@ -4,7 +4,7 @@ import { SlaPolicyItem, TicketPriority, PRIORITY_CONFIG } from '@helpdesk360/sha
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/common/Button';
 import { useToast } from '../../context/ToastContext';
-import { Clock, ShieldAlert, CheckCircle, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Clock, ShieldAlert, CheckCircle, Save, Loader2, AlertCircle, Zap } from 'lucide-react';
 
 export const SLAManagement: React.FC = () => {
   const [policies, setPolicies] = useState<SlaPolicyItem[]>([]);
@@ -59,16 +59,43 @@ export const SLAManagement: React.FC = () => {
     }
   };
 
+  const [isCheckingEscalations, setIsCheckingEscalations] = useState(false);
+
+  const handleRunEscalationCheck = async () => {
+    try {
+      setIsCheckingEscalations(true);
+      const res = await api.post<{ success: boolean; result: any; message: string }>('/admin/escalations/run-check');
+      if (res.success) {
+        toast.success(res.message);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to trigger SLA escalation check.');
+    } finally {
+      setIsCheckingEscalations(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Service Level Agreements (SLA)"
-        subtitle="Enforce binding first-response and full-resolution targets based on incident severity."
-        breadcrumbs={[
-          { label: 'Admin', to: '/admin/dashboard' },
-          { label: 'SLA Management' },
-        ]}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageHeader
+          title="Service Level Agreements (SLA)"
+          subtitle="Enforce binding first-response and full-resolution targets based on incident severity."
+          breadcrumbs={[
+            { label: 'Admin', to: '/admin/dashboard' },
+            { label: 'SLA Management' },
+          ]}
+        />
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleRunEscalationCheck}
+          isLoading={isCheckingEscalations}
+          iconLeft={<Zap className="w-3.5 h-3.5 text-amber-600" />}
+        >
+          Run Escalation Sweep
+        </Button>
+      </div>
 
       <div className="p-4 rounded-lg bg-[#EFF8FF] border border-[#B2DDFF] flex items-start gap-3">
         <Clock className="w-5 h-5 text-[#175CD3] flex-shrink-0 mt-0.5" />

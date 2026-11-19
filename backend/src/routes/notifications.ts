@@ -10,6 +10,17 @@ router.use(authenticate);
 // Active SSE client connections keyed by userId
 const sseClients = new Map<string, Set<Response>>();
 
+// Active Web Push subscriptions keyed by userId
+const pushSubscriptions = new Map<string, any[]>();
+
+// In-memory user preferences store (with defaults)
+const userPreferences = new Map<string, {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  inAppNotifications: boolean;
+  urgentOnly: boolean;
+}>();
+
 export function sendNotificationToUser(userId: string, notification: any) {
   const userClients = sseClients.get(userId);
   if (userClients) {
@@ -93,7 +104,84 @@ router.post('/read-all', async (req, res, next) => {
   }
 });
 
-// 4. Server-Sent Events (SSE) Stream
+// 4. Web Push VAPID Public Key
+router.get('/push/public-key', (_req, res) => {
+  const publicKey = process.env.VAPID_PUBLIC_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjS5Snfyzj0n34nF86-gWq8qX2Z-Q';
+  return res.json({
+    success: true,
+    publicKey,
+  });
+});
+
+// 5. Register Web Push Subscription
+router.post('/push/subscribe', (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const { subscription } = req.body;
+
+    if (!subscription || !subscription.endpoint) {
+      throw new AppError('Invalid push subscription payload.', 400);
+    }
+
+    if (!pushSubscriptions.has(userId)) {
+      pushSubscriptions.set(userId, []);
+    }
+
+    const userSubs = pushSubscriptions.get(userId)!;
+    const exists = userSubs.some((s) => s.endpoint === subscription.endpoint);
+    if (!exists) {
+      userSubs.push(subscription);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Push notifications registered successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 6. User Notification Preferences
+router.get('/preferences', (req, res) => {
+  const userId = req.user!.id;
+  const prefs = userPreferences.get(userId) || {
+    emailNotifications: true,
+    pushNotifications: true,
+    inAppNotifications: true,
+    urgentOnly: false,
+  };
+
+  return res.json({
+    success: true,
+    preferences: prefs,
+  });
+});
+
+router.patch('/preferences', (req, res) => {
+  const userId = req.user!.id;
+  const current = userPreferences.get(userId) || {
+    emailNotifications: true,
+    pushNotifications: true,
+    inAppNotifications: true,
+    urgentOnly: false,
+  };
+
+  const updated = {
+    ...current,
+    ...req.body,
+  };
+
+  userPreferences.set(userId, updated);
+
+  return res.json({
+    success: true,
+    preferences: updated,
+    message: 'Notification preferences updated.',
+  });
+});
+
+// 7. Server-Sent Events (SSE) Stream
 router.get('/stream', (req, res) => {
   const userId = req.user!.id;
 

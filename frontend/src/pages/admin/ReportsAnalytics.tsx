@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import {
   BarChart3,
   Download,
+  FileText,
   Calendar,
   Filter,
   Star,
@@ -99,6 +100,13 @@ export const ReportsAnalytics: React.FC = () => {
     window.open(`/api/admin/reports/export-csv?${queryParams.toString()}`, '_blank');
   };
 
+  const handleExportPdf = () => {
+    const queryParams = new URLSearchParams();
+    if (departmentId && departmentId !== 'ALL') queryParams.set('departmentId', departmentId);
+
+    window.open(`/api/admin/reports/export-pdf?${queryParams.toString()}`, '_blank');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -110,14 +118,24 @@ export const ReportsAnalytics: React.FC = () => {
             { label: 'Reports & Analytics' },
           ]}
         />
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleExportCsv}
-          iconLeft={<Download className="w-3.5 h-3.5" />}
-        >
-          Export CSV Report
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExportCsv}
+            iconLeft={<Download className="w-3.5 h-3.5" />}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleExportPdf}
+            iconLeft={<FileText className="w-3.5 h-3.5" />}
+          >
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       {/* Filter Toolbar */}

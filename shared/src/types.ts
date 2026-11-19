@@ -173,7 +173,7 @@ export interface StatusHistoryItem {
 export interface TicketEventItem {
   id: string;
   ticketId: string;
-  eventType: 'CREATED' | 'ASSIGNED' | 'STATUS_CHANGED' | 'COMMENTED' | 'ESCALATED';
+  eventType: 'CREATED' | 'ASSIGNED' | 'STATUS_CHANGED' | 'PRIORITY_CHANGED' | 'COMMENTED' | 'ESCALATED';
   actorId: string;
   oldValue: string | null;
   newValue: string | null;

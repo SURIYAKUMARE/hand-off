@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { Avatar } from '../common/Avatar';
 import { Tooltip } from '../common/Tooltip';
 import {
@@ -35,10 +36,15 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch {
+      toast.error('Unable to sign out. Please try again.');
+    }
   };
 
   const adminSections = [

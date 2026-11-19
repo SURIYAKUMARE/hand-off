@@ -1,4 +1,4 @@
-const CACHE_NAME = 'helpdesk360-v1';
+const CACHE_NAME = 'helpdesk360-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -33,7 +33,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Ignore non-GET requests for HTTP cache
-  if (request.method !== 'GET') {
+  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/auth/')) {
     return;
   }
 

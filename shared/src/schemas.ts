@@ -100,6 +100,8 @@ export const UpdateStatusSchema = z.object({
 });
 export type UpdateStatusInput = z.infer<typeof UpdateStatusSchema>;
 
+export const UpdatePrioritySchema = CreateTicketSchema.pick({ priority: true });
+
 export const CreateCommentSchema = z.object({
   content: z
     .string()

@@ -38,9 +38,9 @@ test.describe('Automated Screen Exports for HelpDesk 360', () => {
     // 4. Employee New Ticket Form
     await page.goto('/employee/new-ticket');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('h1:has-text("New ticket")')).toBeVisible();
-    await page.fill('input[placeholder*="Laptop does not boot"]', 'Monitor resolution stuck at 1024x768');
-    await page.fill('textarea[placeholder*="Provide detailed symptoms"]', 'Unable to set native 4K resolution on external Dell monitor after graphics driver rollback.');
+    await expect(page.getByRole('heading', { name: 'New IT Support Request' })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Ticket title' }).fill('Monitor resolution stuck at 1024x768');
+    await page.getByRole('textbox', { name: 'Issue description' }).fill('Unable to set native 4K resolution on external Dell monitor after graphics driver rollback.');
     await saveShot('03_employee_new_ticket');
 
     // 5. Employee Ticket Detail

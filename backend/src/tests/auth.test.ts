@@ -47,6 +47,17 @@ describe('Authentication and Authorization API Tests', () => {
     expect(cookies).toBeDefined();
     expect(cookies[0]).toContain('helpdesk360_sid=');
     expect(cookies[0]).toContain('HttpOnly');
+    expect(cookies[0]).not.toMatch(/(?:Expires|Max-Age)=/i);
+  });
+
+  it('persists the cookie when the user selects keep me signed in', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'priya.nair@helpdesk.local', password: 'Password123!', rememberMe: true });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['set-cookie'][0]).toContain('Expires=');
+    expect(res.headers['cache-control']).toBe('no-store');
   });
 
   it('persists session and allows /api/auth/me retrieval', async () => {
@@ -66,6 +77,7 @@ describe('Authentication and Authorization API Tests', () => {
     expect(meRes.body.success).toBe(true);
     expect(meRes.body.user.name).toBe('Arjun Mehta');
     expect(meRes.body.user.role).toBe('TECHNICIAN');
+    expect(meRes.headers['cache-control']).toBe('no-store');
   });
 
   it('properly logs out and invalidates session token', async () => {

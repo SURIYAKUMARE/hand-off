@@ -12,6 +12,8 @@ import { TextInput } from '../../components/common/TextInput';
 import { TextArea } from '../../components/common/TextArea';
 import { Select } from '../../components/common/Select';
 import { Button } from '../../components/common/Button';
+import { SuggestedFixes } from '../../components/tickets/SuggestedFixes';
+import { AIAssistantCard } from '../../components/tickets/AIAssistantCard';
 import {
   PRIORITY_CONFIG,
   CATEGORY_LABELS,
@@ -372,6 +374,27 @@ export const NewTicket: React.FC = () => {
             className="min-h-[130px]"
           />
 
+          {/* AI Smart Categorization & Triage Assistant */}
+          <AIAssistantCard
+            title={title}
+            description={description}
+            currentCategory={category}
+            currentPriority={priority}
+            onApplyCategory={(cat) => {
+              setCategory(cat);
+              if (fieldErrors.category) {
+                setFieldErrors((prev) => ({ ...prev, category: '' }));
+              }
+            }}
+            onApplyPriority={(prio) => {
+              setPriority(prio);
+              if (fieldErrors.priority) {
+                setFieldErrors((prev) => ({ ...prev, priority: '' }));
+              }
+            }}
+            disabled={createMutation.isPending}
+          />
+
           {/* Category & Priority */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
@@ -404,6 +427,8 @@ export const NewTicket: React.FC = () => {
               disabled={createMutation.isPending}
             />
           </div>
+
+          <SuggestedFixes title={title} category={category} disabled={createMutation.isPending} />
 
           {/* Department & Asset Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

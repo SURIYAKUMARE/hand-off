@@ -15,9 +15,8 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
         rightIcon={
           <button
             type="button"
-            tabIndex={-1}
             onClick={() => setShowPassword(!showPassword)}
-            className="text-text-muted hover:text-text-primary p-0.5 rounded transition-colors focus:outline-none"
+            className="text-text-muted hover:text-text-primary p-0.5 rounded transition-colors focus-visible:outline-brand"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

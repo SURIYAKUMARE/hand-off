@@ -9,6 +9,17 @@ import { LoginSchema } from '@helpdesk360/shared';
 import { AppError } from '../middleware/errorHandler';
 
 const router = Router();
+const sessionCookieOptions = {
+  httpOnly: true,
+  secure: config.isProduction,
+  sameSite: 'lax' as const,
+  path: '/',
+};
+
+router.use((_req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 
 router.post('/login', loginRateLimiter, validateBody(LoginSchema), async (req, res, next) => {
   try {
@@ -24,7 +35,7 @@ router.post('/login', loginRateLimiter, validateBody(LoginSchema), async (req, r
       },
     });
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new AppError('Invalid email or password.', 401);
     }
 
@@ -33,11 +44,6 @@ router.post('/login', loginRateLimiter, validateBody(LoginSchema), async (req, r
         `Account is ${user.status.toLowerCase()}. Please contact your IT administrator.`,
         403
       );
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      throw new AppError('Invalid email or password.', 401);
     }
 
     // Record last login timestamp
@@ -50,12 +56,8 @@ router.post('/login', loginRateLimiter, validateBody(LoginSchema), async (req, r
 
     // Set secure HTTP-only cookie
     res.cookie(config.sessionCookieName, token, {
-      httpOnly: true,
-      secure: config.isProduction,
-      sameSite: 'lax',
-      path: '/',
-      expires: expiresAt,
-      maxAge: config.sessionDurationDays * 24 * 60 * 60 * 1000,
+      ...sessionCookieOptions,
+      ...(rememberMe ? { expires: expiresAt } : {}),
     });
 
     return res.json({
@@ -83,12 +85,7 @@ router.post('/logout', authenticate, async (req, res, next) => {
       await deleteSession(req.sessionToken);
     }
 
-    res.clearCookie(config.sessionCookieName, {
-      httpOnly: true,
-      secure: config.isProduction,
-      sameSite: config.isProduction ? 'strict' : 'lax',
-      path: '/',
-    });
+    res.clearCookie(config.sessionCookieName, sessionCookieOptions);
 
     return res.json({
       success: true,

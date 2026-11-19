@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, TriangleAlert, X } from 'lucide-react';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 export interface ToastItem {
   id: string;
@@ -15,6 +15,7 @@ interface ToastContextType {
     success: (message: string, title?: string) => void;
     error: (message: string, title?: string) => void;
     info: (message: string, title?: string) => void;
+    warning: (message: string, title?: string) => void;
   };
 }
 
@@ -42,6 +43,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     success: (message: string, title?: string) => addToast('success', message, title),
     error: (message: string, title?: string) => addToast('error', message, title),
     info: (message: string, title?: string) => addToast('info', message, title),
+    warning: (message: string, title?: string) => addToast('warning', message, title),
   };
 
   return (
@@ -50,7 +52,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {/* Floating Notifications Container */}
       <div
         aria-live="polite"
-        className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"
+        className="fixed bottom-4 left-4 right-4 z-50 ml-auto flex max-w-sm flex-col gap-2 pointer-events-none"
       >
         {toasts.map((t) => (
           <div
@@ -66,6 +68,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             )}
             {t.type === 'info' && (
               <Info className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
+            )}
+            {t.type === 'warning' && (
+              <TriangleAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
             )}
 
             <div className="flex-1 text-xs">

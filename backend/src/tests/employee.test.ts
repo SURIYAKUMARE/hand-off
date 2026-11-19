@@ -111,6 +111,54 @@ describe('Employee Role and Permissions API Tests', () => {
     expect(res.body.ticket.id).toBe(priyaTicketId);
   });
 
+  it('suggests relevant published guides and keeps unpublished guides private', async () => {
+    const author = await prisma.user.findUniqueOrThrow({
+      where: { email: 'arjun.mehta@helpdesk.local' },
+    });
+    const draft = await prisma.knowledgeArticle.create({
+      data: {
+        title: 'Conference room Wi-Fi drops during meetings',
+        category: 'NETWORK',
+        content: 'Draft troubleshooting guide.',
+        isPublished: false,
+        authorId: author.id,
+      },
+    });
+
+    try {
+      const suggestions = await request(app)
+        .post('/api/knowledge-base/suggestions')
+        .set('Cookie', employeeCookie)
+        .send({ title: 'Conference room WIFI drops during meetings', category: 'HARDWARE' });
+
+      expect(suggestions.status).toBe(200);
+      expect(suggestions.body.articles[0]).toMatchObject({
+        title: 'Troubleshooting meeting room Wi-Fi drops and latency',
+        category: 'NETWORK',
+      });
+      expect(suggestions.body.articles[0]).not.toHaveProperty('content');
+      expect(suggestions.body.articles.map((article: { id: string }) => article.id)).not.toContain(draft.id);
+
+      const hiddenGuide = await request(app)
+        .get(`/api/knowledge-base/${draft.id}`)
+        .set('Cookie', employeeCookie);
+
+      expect(hiddenGuide.status).toBe(404);
+    } finally {
+      await prisma.knowledgeArticle.delete({ where: { id: draft.id } });
+    }
+  });
+
+  it('returns no suggestions for an unrelated title', async () => {
+    const response = await request(app)
+      .post('/api/knowledge-base/suggestions')
+      .set('Cookie', employeeCookie)
+      .send({ title: 'Zebras somersaulting', category: 'NETWORK' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.articles).toEqual([]);
+  });
+
   it('blocks employee from accessing another employees ticket (HTTP 403 Forbidden)', async () => {
     // Priya Nair tries to access Kavya Raman's ticket
     const res = await request(app)

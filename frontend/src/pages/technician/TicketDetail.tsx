@@ -13,6 +13,9 @@ import {
 import {
   TicketDetail as TicketDetailType,
   TicketStatus,
+  TicketPriority,
+  PRIORITY_CONFIG,
+  PriorityEnum,
   CATEGORY_LABELS,
   STATUS_CONFIG,
   getNextPermittedStatus,
@@ -45,6 +48,8 @@ import {
 } from 'lucide-react';
 import { AttachmentsList } from '../../components/tickets/AttachmentsList';
 
+const priorityOptions = PriorityEnum.options.map((value) => ({ value, label: PRIORITY_CONFIG[value].label }));
+
 export const TechnicianTicketDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -55,6 +60,7 @@ export const TechnicianTicketDetail: React.FC = () => {
   const { isOnline } = useNetwork();
 
   const [selectedTech, setSelectedTech] = useState<string>('');
+  const [pendingPriority, setPendingPriority] = useState<{ ticketId: string; value: TicketPriority } | null>(null);
   const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false);
   const [localComments, setLocalComments] = useState<any[]>([]);
 
@@ -75,6 +81,23 @@ export const TechnicianTicketDetail: React.FC = () => {
 
   const ticket = data?.ticket;
   const technicians = techData?.technicians || [];
+
+  const priorityMutation = useMutation({
+    mutationFn: ({ ticketId, value }: { ticketId: string; value: TicketPriority }) =>
+      api.patch(`/tickets/${ticketId}/priority`, { priority: value }),
+    onSuccess: async (_data, { ticketId, value }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['technician-ticket', ticketId] }),
+        queryClient.invalidateQueries({ queryKey: ['ticket', ticketId] }),
+        queryClient.invalidateQueries({ queryKey: ['tickets-queue'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-tickets'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
+      setPendingPriority(null);
+      toast.success(`Priority updated to ${PRIORITY_CONFIG[value].label}.`);
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update priority.'),
+  });
 
   // Update local assignment state when ticket loads
   React.useEffect(() => {
@@ -183,6 +206,8 @@ export const TechnicianTicketDetail: React.FC = () => {
 
   if (!ticket) return null;
 
+  const selectedPriority = pendingPriority?.ticketId === ticket.id ? pendingPriority.value : ticket.priority;
+  const canUpdatePriority = ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS';
   const nextStatus = getNextPermittedStatus(ticket.status);
 
   const getTransitionButtonConfig = () => {
@@ -328,7 +353,7 @@ export const TechnicianTicketDetail: React.FC = () => {
           <Card className="border-brand/30 bg-[#FAFBFD]">
             <CardHeader
               title="Technician controls"
-              subtitle="Assign technician and advance ticket status"
+              subtitle="Manage assignment, priority, and status"
             />
 
             <div className="space-y-4">
@@ -367,6 +392,31 @@ export const TechnicianTicketDetail: React.FC = () => {
                   </Button>
                 </div>
               </div>
+
+              {canUpdatePriority && (
+                <div className="border-t border-border pt-3">
+                  <div className="flex items-end gap-2">
+                    <Select
+                      label="Ticket priority"
+                      options={priorityOptions}
+                      value={selectedPriority}
+                      disabled={!isOnline || priorityMutation.isPending}
+                      onChange={(event) => setPendingPriority({ ticketId: ticket.id, value: PriorityEnum.parse(event.target.value) })}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="shrink-0"
+                      disabled={!isOnline || selectedPriority === ticket.priority}
+                      isLoading={priorityMutation.isPending}
+                      onClick={() => priorityMutation.mutate({ ticketId: ticket.id, value: selectedPriority })}
+                    >
+                      Save priority
+                    </Button>
+                  </div>
+                  {!isOnline && <p className="mt-1 text-xs text-text-muted">Reconnect to change priority.</p>}
+                </div>
+              )}
 
               {/* Status Transition Control (Only Next Permitted Step) */}
               <div className="pt-3 border-t border-border">

@@ -1,13 +1,28 @@
 import { prisma } from '../prisma';
 import { AppError } from '../middleware/errorHandler';
+import { sendEmailNotification } from './emailService';
 import {
   CreateTicketInput,
   TicketCategory,
   TicketPriority,
   TicketStatus,
+  PRIORITY_CONFIG,
   canTransitionStatus,
   VALID_STATUS_TRANSITIONS,
 } from '@helpdesk360/shared';
+
+function calculateTicketDeadlines(
+  createdAt: Date,
+  priority: TicketPriority,
+  policy: { firstResponseMinutes: number; resolutionMinutes: number } | null
+) {
+  const start = createdAt.getTime();
+  const resolutionMinutes = policy?.resolutionMinutes ?? PRIORITY_CONFIG[priority].slaHours * 60;
+  return {
+    slaDeadline: new Date(start + resolutionMinutes * 60_000),
+    firstResponseDeadline: policy ? new Date(start + policy.firstResponseMinutes * 60_000) : null,
+  };
+}
 
 export async function generateNextTicketNumber(): Promise<string> {
   const tickets = await prisma.ticket.findMany({
@@ -67,24 +82,12 @@ export async function createTicket(reporterId: string, input: CreateTicketInput)
   }
 
   // 2. Compute SLA Deadlines from stored SlaPolicy
-  const now = new Date();
-  let firstResponseDeadline: Date | null = null;
-  let slaDeadline: Date | null = null;
-
+  const createdAt = new Date();
   const policy = await prisma.slaPolicy.findUnique({
     where: { priority: input.priority },
   });
 
-  if (policy) {
-    firstResponseDeadline = new Date(now.getTime() + policy.firstResponseMinutes * 60 * 1000);
-    slaDeadline = new Date(now.getTime() + policy.resolutionMinutes * 60 * 1000);
-  } else {
-    // Fallback default SLA
-    const defaultHours = input.priority === 'URGENT' ? 4 : input.priority === 'HIGH' ? 8 : 24;
-    slaDeadline = new Date(now.getTime() + defaultHours * 3600 * 1000);
-  }
-
-  return await prisma.$transaction(async (tx) => {
+  const ticket = await prisma.$transaction(async (tx) => {
     // Generate sequential ticket number
     const ticketNumber = await generateNextTicketNumber();
 
@@ -100,8 +103,8 @@ export async function createTicket(reporterId: string, input: CreateTicketInput)
         assignedTechnicianId,
         departmentId: input.departmentId || null,
         assetId: input.assetId || null,
-        firstResponseDeadline,
-        slaDeadline,
+        createdAt,
+        ...calculateTicketDeadlines(createdAt, input.priority, policy),
       },
       include: {
         reporter: {
@@ -176,6 +179,23 @@ export async function createTicket(reporterId: string, input: CreateTicketInput)
 
     return ticket;
   });
+
+  // Asynchronous transactional email dispatch
+  if (ticket.assignedTechnician) {
+    sendEmailNotification({
+      to: ticket.assignedTechnician.email,
+      recipientName: ticket.assignedTechnician.name,
+      subject: `[${ticket.ticketNumber}] New ticket assigned: ${ticket.title}`,
+      ticketNumber: ticket.ticketNumber,
+      ticketTitle: ticket.title,
+      ticketPriority: ticket.priority,
+      eventType: 'ASSIGNED',
+      details: input.description,
+      actionUrl: `/technician/tickets/${ticket.id}`,
+    }).catch(() => {});
+  }
+
+  return ticket;
 }
 
 export async function assignTechnician(ticketId: string, assignedTechnicianId: string | null, actorId: string) {
@@ -202,7 +222,7 @@ export async function assignTechnician(ticketId: string, assignedTechnicianId: s
 
   const oldTechName = ticket.assignedTechnician ? ticket.assignedTechnician.name : 'Unassigned';
 
-  return await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const updated = await tx.ticket.update({
       where: { id: ticketId },
       data: {
@@ -240,6 +260,50 @@ export async function assignTechnician(ticketId: string, assignedTechnicianId: s
 
     return updated;
   });
+
+  if (updated.assignedTechnician) {
+    sendEmailNotification({
+      to: updated.assignedTechnician.email,
+      recipientName: updated.assignedTechnician.name,
+      subject: `[${updated.ticketNumber}] Ticket assigned to you`,
+      ticketNumber: updated.ticketNumber,
+      ticketTitle: updated.title,
+      ticketPriority: updated.priority,
+      eventType: 'ASSIGNED',
+      details: `Reassigned from ${oldTechName} to you.`,
+      actionUrl: `/technician/tickets/${updated.id}`,
+    }).catch(() => {});
+  }
+
+  return updated;
+}
+
+export async function updateTicketPriority(ticketId: string, priority: TicketPriority, actorId: string) {
+  const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+  if (!ticket) throw new AppError('Ticket not found.', 404);
+  if (ticket.priority === priority) return ticket;
+  if (ticket.status !== 'OPEN' && ticket.status !== 'IN_PROGRESS') {
+    throw new AppError('Only open or in-progress tickets can be reprioritized.', 409);
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const policy = await tx.slaPolicy.findUnique({ where: { priority } });
+    const deadlines = calculateTicketDeadlines(ticket.createdAt, priority, policy);
+    const result = await tx.ticket.updateMany({
+      where: { id: ticketId, priority: ticket.priority, status: ticket.status, updatedAt: ticket.updatedAt },
+      data: {
+        priority,
+        slaDeadline: deadlines.slaDeadline,
+        firstResponseDeadline: ticket.firstResponseAt ? ticket.firstResponseDeadline : deadlines.firstResponseDeadline,
+      },
+    });
+    if (result.count === 0) throw new AppError('The ticket changed. Refresh it and try again.', 409);
+
+    await tx.ticketEvent.create({
+      data: { ticketId, eventType: 'PRIORITY_CHANGED', actorId, oldValue: ticket.priority, newValue: priority },
+    });
+    return tx.ticket.findUniqueOrThrow({ where: { id: ticketId } });
+  });
 }
 
 export async function updateTicketStatus(ticketId: string, newStatus: TicketStatus, actorId: string) {
@@ -270,7 +334,7 @@ export async function updateTicketStatus(ticketId: string, newStatus: TicketStat
   const now = new Date();
   const resolvedAt = newStatus === 'RESOLVED' ? now : undefined;
 
-  return await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const updated = await tx.ticket.update({
       where: { id: ticketId },
       data: {
@@ -319,6 +383,22 @@ export async function updateTicketStatus(ticketId: string, newStatus: TicketStat
 
     return updated;
   });
+
+  if (updated.reporter) {
+    sendEmailNotification({
+      to: updated.reporter.email,
+      recipientName: updated.reporter.name,
+      subject: `[${updated.ticketNumber}] Status updated to ${newStatus.replace('_', ' ')}`,
+      ticketNumber: updated.ticketNumber,
+      ticketTitle: updated.title,
+      ticketPriority: updated.priority,
+      eventType: newStatus === 'RESOLVED' ? 'RESOLVED' : 'STATUS_CHANGED',
+      details: `Your ticket status was transitioned to ${newStatus.replace('_', ' ')}.`,
+      actionUrl: `/employee/tickets/${updated.id}`,
+    }).catch(() => {});
+  }
+
+  return updated;
 }
 
 export async function addComment(

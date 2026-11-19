@@ -57,6 +57,38 @@ describe('Technician Operations and Strict State Machine API Tests', () => {
     });
   });
 
+  it('prioritizes urgent tickets before lower priorities across page boundaries', async () => {
+    const page1 = await request(app).get('/api/tickets?limit=4').set('Cookie', techCookie);
+    const page2 = await request(app).get('/api/tickets?limit=4&page=2').set('Cookie', techCookie);
+    expect(page1.status).toBe(200);
+    expect(page2.status).toBe(200);
+    const tickets = [...page1.body.data, ...page2.body.data];
+    const priorityOrder = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
+    const ranks = tickets.map((ticket) => priorityOrder.indexOf(ticket.priority));
+    expect(ranks[0]).toBe(0);
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    expect(new Set(tickets.map((ticket) => ticket.id)).size).toBe(8);
+  });
+
+  it('persists a priority change and records the previous priority only once', async () => {
+    const before = await prisma.ticket.findUniqueOrThrow({ where: { id: testTicketId } });
+    const priority = before.priority === 'URGENT' ? 'HIGH' : 'URGENT';
+    const update = () => request(app).patch(`/api/tickets/${testTicketId}/priority`)
+      .set('Cookie', techCookie).send({ priority });
+
+    expect((await update()).status).toBe(200);
+    expect((await update()).status).toBe(200);
+
+    const after = await prisma.ticket.findUniqueOrThrow({ where: { id: testTicketId } });
+    const policy = await prisma.slaPolicy.findUniqueOrThrow({ where: { priority } });
+    expect(after.priority).toBe(priority);
+    expect(after.status).toBe(before.status);
+    expect(after.slaDeadline?.getTime()).toBe(before.createdAt.getTime() + policy.resolutionMinutes * 60_000);
+    const events = await prisma.ticketEvent.findMany({ where: { ticketId: testTicketId, eventType: 'PRIORITY_CHANGED' } });
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ oldValue: before.priority, newValue: priority });
+  });
+
   it('filters queue by category accurately', async () => {
     const res = await request(app)
       .get('/api/tickets?category=HARDWARE')

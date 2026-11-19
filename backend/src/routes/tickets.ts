@@ -2,6 +2,7 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 import { authenticate } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
@@ -13,14 +14,17 @@ import {
   UpdateStatusSchema,
   TicketFilterSchema,
   SubmitFeedbackSchema,
-  TicketPriority,
+  PriorityEnum,
+  UpdatePrioritySchema,
   TicketStatus,
 } from '@helpdesk360/shared';
 import {
   createTicket,
   assignTechnician,
+  updateTicketPriority,
   updateTicketStatus,
 } from '../services/ticketService';
+import { analyzeTicketWithAI } from '../services/aiService';
 
 const router = Router();
 
@@ -122,6 +126,25 @@ router.get('/duplicates', async (req, res, next) => {
 });
 
 // ==========================================
+// 1b. AI TICKET CATEGORIZATION & SMART ASSIST
+// ==========================================
+router.post('/ai-suggest', async (req, res, next) => {
+  try {
+    const { title, description } = req.body;
+    if (!title && !description) {
+      throw new AppError('Ticket title or description is required for AI analysis.', 400);
+    }
+    const suggestion = await analyzeTicketWithAI(String(title || ''), String(description || ''));
+    return res.json({
+      success: true,
+      suggestion,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ==========================================
 // 2. CREATE TICKET
 // ==========================================
 router.post('/', validateBody(CreateTicketSchema), async (req, res, next) => {
@@ -149,13 +172,13 @@ router.get('/', validateQuery(TicketFilterSchema), async (req, res, next) => {
       category,
       assigneeId,
       departmentId,
-      sort = 'createdAt',
+      sort = req.user!.role === 'TECHNICIAN' ? 'priority' : 'createdAt',
       order = 'desc',
       page = 1,
       limit = 20,
     } = req.query as any;
 
-    const where: any = {};
+    const where: Prisma.TicketWhereInput = {};
 
     // Role Scoping: Employees can ONLY view tickets they created
     if (req.user!.role === 'EMPLOYEE') {
@@ -205,39 +228,53 @@ router.get('/', validateQuery(TicketFilterSchema), async (req, res, next) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    let orderBy: any = [];
-    if (req.user!.role === 'TECHNICIAN' && !req.query.sort) {
-      orderBy = [{ priority: 'desc' }, { createdAt: 'desc' }];
-    } else {
-      orderBy = [{ [sort]: order }];
-    }
+    const include = {
+      reporter: { select: { id: true, name: true, email: true } },
+      assignedTechnician: { select: { id: true, name: true, email: true } },
+      department: { select: { id: true, name: true } },
+      asset: { select: { id: true, assetTag: true, name: true, type: true } },
+      _count: { select: { comments: true, attachments: true } },
+    } satisfies Prisma.TicketInclude;
 
-    const [total, tickets] = await Promise.all([
-      prisma.ticket.count({ where }),
-      prisma.ticket.findMany({
-        where,
-        skip,
-        take: limitNum,
-        orderBy,
-        include: {
-          reporter: {
-            select: { id: true, name: true, email: true },
-          },
-          assignedTechnician: {
-            select: { id: true, name: true, email: true },
-          },
-          department: {
-            select: { id: true, name: true },
-          },
-          asset: {
-            select: { id: true, assetTag: true, name: true, type: true },
-          },
-          _count: {
-            select: { comments: true, attachments: true },
-          },
-        },
-      }),
-    ]);
+    let total: number;
+    let tickets: Prisma.TicketGetPayload<{ include: typeof include }>[];
+    if (sort === 'priority') {
+      // SQLite strings and PostgreSQL enums sort differently. Use the shared priority order.
+      const groups = await prisma.ticket.groupBy({ by: ['priority'], where, _count: { _all: true } });
+      const counts = new Map(groups.map(({ priority, _count }) => [priority, _count._all]));
+      const priorities = [...PriorityEnum.options];
+      if (order === 'asc') priorities.reverse();
+      total = groups.reduce((sum, group) => sum + group._count._all, 0);
+
+      let offset = skip;
+      let remaining = limitNum;
+      const batches = [];
+      for (const priority of priorities) {
+        const count = counts.get(priority) ?? 0;
+        if (offset >= count) {
+          offset -= count;
+          continue;
+        }
+
+        const take = Math.min(remaining, count - offset);
+        batches.push(prisma.ticket.findMany({
+          where: { ...where, priority },
+          skip: offset,
+          take,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          include,
+        }));
+        remaining -= take;
+        offset = 0;
+        if (remaining === 0) break;
+      }
+      tickets = (await Promise.all(batches)).flat();
+    } else {
+      [total, tickets] = await Promise.all([
+        prisma.ticket.count({ where }),
+        prisma.ticket.findMany({ where, skip, take: limitNum, orderBy: [{ [sort]: order }], include }),
+      ]);
+    }
 
     const totalPages = Math.ceil(total / limitNum) || 1;
 
@@ -515,5 +552,14 @@ router.patch(
     }
   }
 );
+
+router.patch('/:id/priority', requireRole(['TECHNICIAN', 'ADMIN']), validateBody(UpdatePrioritySchema), async (req, res, next) => {
+  try {
+    const ticket = await updateTicketPriority(req.params.id, req.body.priority, req.user!.id);
+    return res.json({ success: true, ticket });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

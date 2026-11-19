@@ -16,8 +16,19 @@ async function startServer() {
       console.log(`Health check: http://localhost:${config.port}/api/health`);
     });
 
+    // Background SLA escalation worker (every 60 seconds)
+    const escalationInterval = setInterval(async () => {
+      try {
+        const { checkAndEscalateTickets } = await import('./services/escalationService');
+        await checkAndEscalateTickets();
+      } catch (err) {
+        console.error('Error in periodic SLA escalation sweep:', err);
+      }
+    }, 60000);
+
     const shutdown = async () => {
       console.log('Shutting down gracefully...');
+      clearInterval(escalationInterval);
       server.close(async () => {
         await prisma.$disconnect();
         console.log('Server and database connections closed.');

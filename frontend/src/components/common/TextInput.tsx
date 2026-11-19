@@ -17,7 +17,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>(
         {label && (
           <label htmlFor={inputId} className="text-xs font-medium text-text-primary">
             {label}
-            {props.required && <span className="text-priority-urgent ml-0.5">*</span>}
+            {props.required && <span aria-hidden="true" className="text-priority-urgent ml-0.5">*</span>}
           </label>
         )}
         <div className="relative flex items-center">
