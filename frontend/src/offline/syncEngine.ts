@@ -1,5 +1,6 @@
 import { api } from '../api/client';
 import { CreateTicketInput, TicketSummary, CommentItem } from '@helpdesk360/shared';
+import { SEED_TICKETS } from './seedData';
 
 export interface OutboxItem {
   id: string;
@@ -174,9 +175,13 @@ export function queueOfflineAssignment(ticketId: string, assignedTechnicianId: s
 export function getCachedOfflineTickets(): Array<TicketSummary & { isPendingSync?: boolean }> {
   try {
     const raw = localStorage.getItem(OFFLINE_TICKETS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+    return SEED_TICKETS;
   } catch (err) {
-    return [];
+    return SEED_TICKETS;
   }
 }
 

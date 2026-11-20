@@ -119,12 +119,12 @@ export const AdminAllTickets: React.FC = () => {
   const pendingTickets = cachedAll.filter((t) => t.isPendingSync);
 
   let combinedList: Array<TicketSummary & { isPendingSync?: boolean }> = [];
-  if (data?.data && Array.isArray(data.data)) {
+  if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
     const existingIds = new Set(data.data.map((t) => t.id));
     const uniquePending = pendingTickets.filter((t) => !existingIds.has(t.id));
     combinedList = [...uniquePending, ...data.data];
   } else {
-    // If offline or request error, gracefully fallback to cached storage
+    // If offline, first load, or request error, gracefully fallback to cached storage
     combinedList = cachedAll;
   }
 

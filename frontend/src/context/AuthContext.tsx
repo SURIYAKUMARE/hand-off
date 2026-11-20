@@ -36,8 +36,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refetchUser = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await api.get<{ success: boolean; user: AuthUser }>('/auth/me', { signal, cache: 'no-store' });
-      if (!signal?.aborted) setUser(res?.success ? res.user : null);
+      const res = await api.get<{ success: boolean; user: AuthUser; token?: string }>('/auth/me', { signal, cache: 'no-store' });
+      if (!signal?.aborted && res?.success && res.user) {
+        setUser(res.user);
+        if (res.token) {
+          try {
+            localStorage.setItem('helpdesk360_token', res.token);
+          } catch {
+            // ignore
+          }
+        }
+      }
     } catch (err) {
       if (!signal?.aborted && err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         try {

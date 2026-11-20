@@ -55,9 +55,27 @@ module.exports = (req, res) => {
     return res.status(500).json({ error: 'Backend application failed to initialize.' });
   }
 
-  const matchedPath = req.headers['x-vercel-matched-path'] || req.headers['x-matched-path'];
-  if (matchedPath && (req.url === '/api' || req.url === '/api/index' || req.url === '/api/index.js')) {
+  // 1. Check Vercel headers for original request path
+  const matchedPath =
+    req.headers['x-vercel-matched-path'] ||
+    req.headers['x-matched-path'] ||
+    req.headers['x-forwarded-uri'] ||
+    req.headers['x-original-uri'];
+
+  if (matchedPath && !matchedPath.includes('handler') && !matchedPath.includes('[...path]')) {
     req.url = matchedPath;
+  } else if (req.query && req.query.path) {
+    // 2. Handled via api/[...path].js wildcard route
+    const subPath = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path;
+    const queryIdx = req.url.indexOf('?');
+    const queryString = queryIdx !== -1 ? req.url.substring(queryIdx) : '';
+    req.url = `/api/${subPath}${queryString}`;
+  } else if (req.url.startsWith('/api/handler') || req.url.startsWith('/api/[...path]')) {
+    // 3. Fallback when routed to handler endpoint directly
+    const queryIdx = req.url.indexOf('?');
+    const queryString = queryIdx !== -1 ? req.url.substring(queryIdx) : '';
+    const cleanUrl = req.url.replace(/^\/api\/(handler|\[\.\.\.path\])(\.js)?/, '/api');
+    req.url = cleanUrl || `/api${queryString}`;
   }
 
   return application(req, res);

@@ -7,9 +7,21 @@ import { TextInput } from '../../components/common/TextInput';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../context/ToastContext';
 import { Laptop, Plus, Search, Edit2, Loader2, HardDrive, Smartphone, Monitor, Server, Wifi } from 'lucide-react';
+import { SEED_ASSETS } from '../../offline/seedData';
 
 export const AssetManagement: React.FC = () => {
-  const [assets, setAssets] = useState<AssetItem[]>([]);
+  const [assets, setAssets] = useState<AssetItem[]>(() => {
+    try {
+      const cached = localStorage.getItem('helpdesk360_cached_assets');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return SEED_ASSETS;
+    } catch {
+      return SEED_ASSETS;
+    }
+  });
   const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +57,14 @@ export const AssetManagement: React.FC = () => {
       if (assetsRes.status === 'fulfilled') {
         const val = assetsRes.value;
         const list = Array.isArray(val?.assets) ? val.assets : Array.isArray(val?.data) ? val.data : [];
-        setAssets(list);
+        if (list.length > 0) {
+          setAssets(list);
+          try {
+            localStorage.setItem('helpdesk360_cached_assets', JSON.stringify(list));
+          } catch {
+            // ignore
+          }
+        }
       }
       if (deptsRes.status === 'fulfilled' && deptsRes.value.success) {
         setDepartments(deptsRes.value.departments);

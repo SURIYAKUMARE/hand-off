@@ -22,9 +22,21 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from 'lucide-react';
+import { SEED_USERS } from '../../offline/seedData';
 
 export const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<UserSummary[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>(() => {
+    try {
+      const cached = localStorage.getItem('helpdesk360_cached_users');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return SEED_USERS;
+    } catch {
+      return SEED_USERS;
+    }
+  });
   const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -69,8 +81,13 @@ export const UserManagement: React.FC = () => {
         api.get<{ success: boolean; departments: DepartmentSummary[] }>('/departments'),
       ]);
 
-      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
+      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value) && usersRes.value.length > 0) {
         setUsers(usersRes.value);
+        try {
+          localStorage.setItem('helpdesk360_cached_users', JSON.stringify(usersRes.value));
+        } catch {
+          // ignore
+        }
       }
       if (deptsRes.status === 'fulfilled' && deptsRes.value.success) {
         setDepartments(deptsRes.value.departments);

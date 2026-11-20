@@ -4,9 +4,21 @@ import { AuditLogItem } from '@helpdesk360/shared';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ShieldCheck, Search, Filter, Loader2, User, Globe } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { SEED_AUDIT_LOGS } from '../../offline/seedData';
 
 export const AuditLogs: React.FC = () => {
-  const [logs, setLogs] = useState<AuditLogItem[]>([]);
+  const [logs, setLogs] = useState<AuditLogItem[]>(() => {
+    try {
+      const cached = localStorage.getItem('helpdesk360_cached_audit_logs');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return SEED_AUDIT_LOGS;
+    } catch {
+      return SEED_AUDIT_LOGS;
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('ALL');
@@ -16,7 +28,15 @@ export const AuditLogs: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      setLogs(await getAllPages<AuditLogItem>('/admin/audit-logs'));
+      const data = await getAllPages<AuditLogItem>('/admin/audit-logs');
+      if (Array.isArray(data) && data.length > 0) {
+        setLogs(data);
+        try {
+          localStorage.setItem('helpdesk360_cached_audit_logs', JSON.stringify(data));
+        } catch {
+          // ignore
+        }
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to load audit logs.');
     } finally {

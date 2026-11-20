@@ -54,9 +54,11 @@ router.post('/login', loginRateLimiter, validateBody(LoginSchema), async (req, r
 
     const { token, expiresAt } = await createSession(user.id);
 
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
     // Set secure HTTP-only cookie
     res.cookie(config.sessionCookieName, token, {
       ...sessionCookieOptions,
+      secure: isHttps,
       ...(rememberMe ? { expires: expiresAt } : {}),
     });
 
@@ -120,6 +122,7 @@ router.get('/me', authenticate, async (req, res, next) => {
     return res.json({
       success: true,
       user: fullUser,
+      token: req.sessionToken,
     });
   } catch (error) {
     next(error);

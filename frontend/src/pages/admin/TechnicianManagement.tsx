@@ -24,9 +24,21 @@ import {
   AlertTriangle,
   Settings,
 } from 'lucide-react';
+import { SEED_TECHNICIANS } from '../../offline/seedData';
 
 export const TechnicianManagement: React.FC = () => {
-  const [technicians, setTechnicians] = useState<TechnicianWorkloadItem[]>([]);
+  const [technicians, setTechnicians] = useState<TechnicianWorkloadItem[]>(() => {
+    try {
+      const cached = localStorage.getItem('helpdesk360_cached_technicians');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return SEED_TECHNICIANS;
+    } catch {
+      return SEED_TECHNICIANS;
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [specFilter, setSpecFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -54,7 +66,14 @@ export const TechnicianManagement: React.FC = () => {
         : Array.isArray(res?.data)
         ? res.data
         : [];
-      setTechnicians(techList);
+      if (techList.length > 0) {
+        setTechnicians(techList);
+        try {
+          localStorage.setItem('helpdesk360_cached_technicians', JSON.stringify(techList));
+        } catch {
+          // ignore
+        }
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to load technician capacity.');
     } finally {
