@@ -36,15 +36,23 @@ export const AssetManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [assetsRes, deptsRes, usersRes] = await Promise.all([
-        api.get<{ success: boolean; assets: AssetItem[] }>('/assets'),
+      const [assetsRes, deptsRes, usersRes] = await Promise.allSettled([
+        api.get<any>('/assets'),
         api.get<{ success: boolean; departments: DepartmentSummary[] }>('/departments'),
         getAllPages<UserSummary>('/admin/users'),
       ]);
 
-      if (assetsRes.success) setAssets(assetsRes.assets);
-      if (deptsRes.success) setDepartments(deptsRes.departments);
-      setUsers(usersRes);
+      if (assetsRes.status === 'fulfilled') {
+        const val = assetsRes.value;
+        const list = Array.isArray(val?.assets) ? val.assets : Array.isArray(val?.data) ? val.data : [];
+        setAssets(list);
+      }
+      if (deptsRes.status === 'fulfilled' && deptsRes.value.success) {
+        setDepartments(deptsRes.value.departments);
+      }
+      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
+        setUsers(usersRes.value);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to load IT assets.');
     } finally {

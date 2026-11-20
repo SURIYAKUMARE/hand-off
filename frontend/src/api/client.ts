@@ -19,8 +19,18 @@ export class ApiError extends Error {
   }
 }
 
+function normalizeUrl(endpoint: string): string {
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    return endpoint;
+  }
+  if (endpoint.startsWith('/api/') || endpoint === '/api') {
+    return endpoint;
+  }
+  return `/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
+  const url = normalizeUrl(endpoint);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('helpdesk360_token') : null;
 
@@ -81,7 +91,7 @@ export const api = {
   delete: <T>(endpoint: string, options?: RequestInit) =>
     request<T>(endpoint, { ...options, method: 'DELETE' }),
   postFormData: async <T>(endpoint: string, formData: FormData): Promise<T> => {
-    const url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
+    const url = normalizeUrl(endpoint);
     const token = typeof window !== 'undefined' ? localStorage.getItem('helpdesk360_token') : null;
     const headers: Record<string, string> = {};
     if (token) {
@@ -110,11 +120,25 @@ export const api = {
 export async function getAllPages<T>(endpoint: string): Promise<T[]> {
   const items: T[] = [];
   let page = 1;
-  let totalPages: number;
+  let totalPages = 1;
   do {
-    const response = await api.get<PaginatedResult<T>>(`${endpoint}?page=${page}&limit=100`);
-    items.push(...response.data);
-    totalPages = response.pagination.totalPages;
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const response = await api.get<any>(`${endpoint}${separator}page=${page}&limit=100`);
+    const pageItems = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.users)
+      ? response.users
+      : Array.isArray(response?.logs)
+      ? response.logs
+      : Array.isArray(response?.assets)
+      ? response.assets
+      : Array.isArray(response?.technicians)
+      ? response.technicians
+      : Array.isArray(response)
+      ? response
+      : [];
+    items.push(...pageItems);
+    totalPages = response?.pagination?.totalPages ?? 1;
     page++;
   } while (page <= totalPages);
   return items;

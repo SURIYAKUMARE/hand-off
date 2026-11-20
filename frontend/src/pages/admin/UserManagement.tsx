@@ -64,13 +64,17 @@ export const UserManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [usersRes, deptsRes] = await Promise.all([
+      const [usersRes, deptsRes] = await Promise.allSettled([
         getAllPages<UserSummary>('/admin/users'),
         api.get<{ success: boolean; departments: DepartmentSummary[] }>('/departments'),
       ]);
 
-      setUsers(usersRes);
-      if (deptsRes.success) setDepartments(deptsRes.departments);
+      if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
+        setUsers(usersRes.value);
+      }
+      if (deptsRes.status === 'fulfilled' && deptsRes.value.success) {
+        setDepartments(deptsRes.value.departments);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to load user directory.');
     } finally {

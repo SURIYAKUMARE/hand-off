@@ -81,13 +81,19 @@ export const AdminAllTickets: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [deptsRes, techsRes] = await Promise.all([
+      const [deptsRes, techsRes] = await Promise.allSettled([
         api.get<{ success: boolean; departments: DepartmentSummary[] }>('/departments'),
-        api.get<{ success: boolean; technicians: TechnicianWorkloadItem[] }>('/admin/technicians'),
+        api.get<any>('/admin/technicians'),
       ]);
 
-      if (deptsRes.success) setDepartments(deptsRes.departments);
-      if (techsRes.success) setTechnicians(techsRes.technicians);
+      if (deptsRes.status === 'fulfilled' && deptsRes.value.success) {
+        setDepartments(deptsRes.value.departments);
+      }
+      if (techsRes.status === 'fulfilled') {
+        const val = techsRes.value as any;
+        const list = val.technicians || val.data || [];
+        if (Array.isArray(list)) setTechnicians(list);
+      }
     } catch {
       setFilterError(true);
     }

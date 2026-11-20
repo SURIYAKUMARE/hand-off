@@ -14,6 +14,7 @@ backend/dev.db
 backend/dev.db-journal
 *.db
 !backend/prisma/production-seed.db
+!api/production-seed.db
 *.db-journal
 
 # Logs

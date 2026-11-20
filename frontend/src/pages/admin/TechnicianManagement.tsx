@@ -48,12 +48,13 @@ export const TechnicianManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get<{ success: boolean; technicians: TechnicianWorkloadItem[] }>(
-        '/admin/technicians'
-      );
-      if (res.success) {
-        setTechnicians(res.technicians);
-      }
+      const res = await api.get<any>('/admin/technicians');
+      const techList = Array.isArray(res?.technicians)
+        ? res.technicians
+        : Array.isArray(res?.data)
+        ? res.data
+        : [];
+      setTechnicians(techList);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load technician capacity.');
     } finally {

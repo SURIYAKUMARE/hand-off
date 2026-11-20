@@ -40,6 +40,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!signal?.aborted) setUser(res?.success ? res.user : null);
     } catch (err) {
       if (!signal?.aborted && err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        try {
+          localStorage.removeItem('helpdesk360_token');
+        } catch {
+          // ignore
+        }
         setUser(null);
       }
     } finally {
@@ -49,23 +54,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const request = new AbortController();
-    try {
-      localStorage.removeItem('helpdesk360_token');
-    } catch {
-      // Cookie sessions work even if browser storage is disabled.
-    }
     void refetchUser(request.signal);
     return () => request.abort();
   }, [refetchUser]);
 
   const login = async (email: string, password: string, rememberMe = false): Promise<AuthUser> => {
-    const res = await api.post<{ success: boolean; user: AuthUser }>('/auth/login', {
+    const res = await api.post<{ success: boolean; user: AuthUser; token?: string }>('/auth/login', {
       email,
       password,
       rememberMe,
     });
     if (!res?.success || !res.user) {
       throw new ApiError('The sign-in service returned an invalid response.', 502);
+    }
+    if (res.token) {
+      try {
+        localStorage.setItem('helpdesk360_token', res.token);
+      } catch {
+        // ignore
+      }
     }
     queryClient.clear();
     setUser(res.user);
@@ -77,9 +84,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await api.post('/auth/logout');
     } catch (err) {
       if (!(err instanceof ApiError) || (err.status !== 401 && err.status !== 403)) throw err;
+    } finally {
+      try {
+        localStorage.removeItem('helpdesk360_token');
+      } catch {
+        // ignore
+      }
+      queryClient.clear();
+      setUser(null);
     }
-    queryClient.clear();
-    setUser(null);
   };
 
   return (
