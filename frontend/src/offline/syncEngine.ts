@@ -43,7 +43,7 @@ export function queueOfflineTicket(
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const ticketNumber = `HD-PENDING-${randomSuffix}`;
 
-  const optimisticTicket: TicketSummary & { isPendingSync: boolean } = {
+  const optimisticTicket: any = {
     id: optimisticId,
     ticketNumber,
     title: input.title,
@@ -61,6 +61,23 @@ export function queueOfflineTicket(
       email: reporter.email,
     },
     assignedTechnician: null,
+    department: input.departmentId ? { id: input.departmentId, name: 'Assigned Department' } : null,
+    asset: input.assetId ? { id: input.assetId, assetTag: 'IT-ASSET', name: 'Equipment', type: 'HARDWARE' } : null,
+    comments: [],
+    events: [
+      {
+        id: 'evt-' + Math.random().toString(36).substring(2, 9),
+        ticketId: optimisticId,
+        eventType: 'CREATED',
+        actorId: reporter.id,
+        actor: { id: reporter.id, name: reporter.name, email: reporter.email, role: 'EMPLOYEE' },
+        oldValue: null,
+        newValue: input.title,
+        createdAt: new Date().toISOString(),
+      },
+    ],
+    attachments: [],
+    _count: { comments: 0, attachments: 0 },
     isPendingSync: true,
   };
 
@@ -166,6 +183,7 @@ export function getCachedOfflineTickets(): Array<TicketSummary & { isPendingSync
 export function saveCachedOfflineTickets(tickets: Array<TicketSummary & { isPendingSync?: boolean }>) {
   try {
     localStorage.setItem(OFFLINE_TICKETS_KEY, JSON.stringify(tickets));
+    window.dispatchEvent(new CustomEvent('helpdesk360_tickets_updated'));
   } catch (err) {
     console.error('Failed to cache offline tickets', err);
   }

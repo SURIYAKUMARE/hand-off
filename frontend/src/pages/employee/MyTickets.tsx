@@ -222,10 +222,6 @@ export const MyTickets: React.FC = () => {
             data={displayTickets}
             keyExtractor={(t) => t.id}
             onRowClick={(t) => {
-              if (t.isPendingSync) {
-                // Inform user ticket is pending server persistence
-                return;
-              }
               navigate(`/employee/tickets/${t.id}`);
             }}
             emptyState={

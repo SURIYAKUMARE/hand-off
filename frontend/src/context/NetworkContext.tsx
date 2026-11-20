@@ -35,6 +35,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Invalidate queries so lists and dashboard update immediately
         queryClient.invalidateQueries({ queryKey: ['my-tickets'] });
         queryClient.invalidateQueries({ queryKey: ['tickets-queue'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-tickets'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         toast.success(
           `Synchronized ${syncedCount} offline change${syncedCount === 1 ? '' : 's'} with server.`,

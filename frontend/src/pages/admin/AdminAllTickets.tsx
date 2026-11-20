@@ -14,12 +14,29 @@ import {
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PriorityChip } from '../../components/tickets/PriorityChip';
 import { StatusChip } from '../../components/tickets/StatusChip';
-import { Search, Filter, Ticket, Loader2, ArrowUpRight, Clock, AlertTriangle } from 'lucide-react';
+import { Button } from '../../components/common/Button';
+import {
+  Search,
+  Filter,
+  Ticket,
+  Loader2,
+  ArrowUpRight,
+  Clock,
+  AlertTriangle,
+  CloudOff,
+  RefreshCw,
+} from 'lucide-react';
+import { getCachedOfflineTickets, saveCachedOfflineTickets } from '../../offline/syncEngine';
+import { useNetwork } from '../../context/NetworkContext';
 
 export const AdminAllTickets: React.FC = () => {
   const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
   const [technicians, setTechnicians] = useState<TechnicianWorkloadItem[]>([]);
   const [filterError, setFilterError] = useState(false);
+  const [cacheVersion, setCacheVersion] = useState(0);
+
+  const { isOnline, isSyncing, triggerSync } = useNetwork();
+  const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('search') || '';
@@ -29,17 +46,38 @@ export const AdminAllTickets: React.FC = () => {
   const techFilter = searchParams.get('tech') || 'ALL';
 
   const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
-  const params = new URLSearchParams({ page: String(page) });
+  const params = new URLSearchParams({ page: String(page), limit: '25' });
   if (search.trim()) params.set('search', search.trim());
   if (statusFilter !== 'ALL') params.set('status', statusFilter);
   if (priorityFilter !== 'ALL') params.set('priority', priorityFilter);
   if (deptFilter !== 'ALL') params.set('departmentId', deptFilter);
   if (techFilter !== 'ALL') params.set('assigneeId', techFilter === 'UNASSIGNED' ? 'unassigned' : techFilter);
+
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-tickets', params.toString()],
-    queryFn: ({ signal }) => api.get<PaginatedResult<TicketSummary>>(`/tickets?${params}`, { signal }),
+    queryFn: async ({ signal }) => {
+      const res = await api.get<any>(`/tickets?${params}`, { signal });
+      const ticketsList = res?.data || res?.tickets || [];
+      if (Array.isArray(ticketsList) && ticketsList.length > 0) {
+        // Cache server tickets for offline access
+        const pending = getCachedOfflineTickets().filter((t) => t.isPendingSync);
+        saveCachedOfflineTickets([...pending, ...ticketsList]);
+      }
+      return res as PaginatedResult<TicketSummary>;
+    },
+    retry: isOnline ? 1 : false,
   });
-  const navigate = useNavigate();
+
+  // Listen for local offline tickets updates
+  useEffect(() => {
+    const onUpdate = () => setCacheVersion((v) => v + 1);
+    window.addEventListener('helpdesk360_tickets_updated', onUpdate);
+    window.addEventListener('helpdesk360_outbox_updated', onUpdate);
+    return () => {
+      window.removeEventListener('helpdesk360_tickets_updated', onUpdate);
+      window.removeEventListener('helpdesk360_outbox_updated', onUpdate);
+    };
+  }, []);
 
   const loadData = async () => {
     try {
@@ -70,20 +108,83 @@ export const AdminAllTickets: React.FC = () => {
     setSearchParams(next, { replace: key === 'search' });
   };
 
-  const filteredTickets = data?.data ?? [];
+  // Combine server tickets with any pending offline tickets
+  const cachedAll = getCachedOfflineTickets();
+  const pendingTickets = cachedAll.filter((t) => t.isPendingSync);
+
+  let combinedList: Array<TicketSummary & { isPendingSync?: boolean }> = [];
+  if (data?.data && Array.isArray(data.data)) {
+    const existingIds = new Set(data.data.map((t) => t.id));
+    const uniquePending = pendingTickets.filter((t) => !existingIds.has(t.id));
+    combinedList = [...uniquePending, ...data.data];
+  } else {
+    // If offline or request error, gracefully fallback to cached storage
+    combinedList = cachedAll;
+  }
+
+  // Filter combined list by search/criteria
+  const filteredTickets = combinedList.filter((t) => {
+    const matchesSearch =
+      !search ||
+      t.ticketNumber.toLowerCase().includes(search.toLowerCase()) ||
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      (t.reporter?.name || '').toLowerCase().includes(search.toLowerCase());
+
+    const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
+    const matchesPriority = priorityFilter === 'ALL' || t.priority === priorityFilter;
+    const matchesDept = deptFilter === 'ALL' || t.department?.id === deptFilter;
+    const matchesTech =
+      techFilter === 'ALL' ||
+      (techFilter === 'UNASSIGNED' && !t.assignedTechnicianId) ||
+      t.assignedTechnicianId === techFilter;
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesDept && matchesTech;
+  });
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Master Ticket Directory"
-        subtitle="Global administrative inspection of all enterprise incident and service requests."
-        breadcrumbs={[
-          { label: 'Admin', to: '/admin/dashboard' },
-          { label: 'All Tickets' },
-        ]}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageHeader
+          title="Master Ticket Directory"
+          subtitle="Global administrative inspection of all enterprise incident and service requests."
+          breadcrumbs={[
+            { label: 'Admin', to: '/admin/dashboard' },
+            { label: 'All Tickets' },
+          ]}
+        />
+        {(!isOnline || isError) && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              triggerSync();
+              refetch();
+            }}
+            isLoading={isSyncing}
+            iconLeft={<RefreshCw className="w-3.5 h-3.5 text-brand" />}
+          >
+            Sync with server
+          </Button>
+        )}
+      </div>
 
-      {filterError && <p role="alert" className="text-sm text-rose-700">Department or technician filters could not be loaded.</p>}
+      {(!isOnline || isError) && (
+        <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <CloudOff className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span>
+              <strong>Offline Mode:</strong> Displaying {filteredTickets.length} cached tickets from device storage
+              {pendingTickets.length > 0 && ` (${pendingTickets.length} pending synchronization to server)`}.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {filterError && (
+        <p role="alert" className="text-xs text-text-muted italic">
+          Department or technician filters operating on local cache.
+        </p>
+      )}
 
       {/* Filter Bar */}
       <div className="p-3 rounded-lg border border-border bg-surface flex flex-wrap items-center gap-3">
@@ -116,47 +217,47 @@ export const AdminAllTickets: React.FC = () => {
           className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
         >
           <option value="ALL">All Priorities</option>
-          <option value="URGENT">Urgent</option>
-          <option value="HIGH">High</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="LOW">Low</option>
+          <option value="URGENT">Urgent (P1)</option>
+          <option value="HIGH">High (P2)</option>
+          <option value="MEDIUM">Medium (P3)</option>
+          <option value="LOW">Low (P4)</option>
         </select>
 
-        <select
-          value={deptFilter}
-          onChange={(e) => updateParam('dept', e.target.value)}
-          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
-        >
-          <option value="ALL">All Departments</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+        {departments.length > 0 && (
+          <select
+            value={deptFilter}
+            onChange={(e) => updateParam('dept', e.target.value)}
+            className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
+          >
+            <option value="ALL">All Departments</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        )}
 
-        <select
-          value={techFilter}
-          onChange={(e) => updateParam('tech', e.target.value)}
-          className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
-        >
-          <option value="ALL">All Assignees</option>
-          <option value="UNASSIGNED">Unassigned</option>
-          {technicians.map((t) => (
-            <option key={t.technicianId} value={t.technicianId}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        {technicians.length > 0 && (
+          <select
+            value={techFilter}
+            onChange={(e) => updateParam('tech', e.target.value)}
+            className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand shadow-xs cursor-pointer"
+          >
+            <option value="ALL">All Technicians</option>
+            <option value="UNASSIGNED">Unassigned Only</option>
+            {technicians.map((t) => (
+              <option key={t.technicianId} value={t.technicianId}>
+                {t.name} ({t.assigned + t.inProgress} active)
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {/* Tickets Table */}
+      {/* Ticket List Table */}
       <div className="rounded-lg border border-border bg-surface overflow-hidden shadow-xs">
-        {isError ? (
-        <div role="alert" className="rounded-lg border border-border bg-surface p-4 text-sm">
-          Could not load tickets. <button className="text-brand underline" onClick={() => void refetch()}>Try again</button>
-        </div>
-      ) : isLoading ? (
+        {isLoading && !data && cachedAll.length === 0 ? (
           <div className="p-12 text-center">
             <Loader2 className="w-6 h-6 animate-spin text-brand mx-auto mb-2" />
             <p className="text-xs text-text-muted">Loading all enterprise tickets...</p>
@@ -165,6 +266,7 @@ export const AdminAllTickets: React.FC = () => {
           <div className="p-12 text-center">
             <Ticket className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-40" />
             <p className="text-sm font-medium text-text-primary">No tickets found</p>
+            <p className="text-xs text-text-muted mt-1">Adjust search parameters or clear filters.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -192,10 +294,21 @@ export const AdminAllTickets: React.FC = () => {
                   return (
                     <tr
                       key={t.id}
-                      onClick={() => navigate(`/technician/tickets/${t.id}`)}
+                      onClick={() => {
+                        navigate(`/technician/tickets/${t.id}`);
+                      }}
                       className="hover:bg-[#F9FAFB] transition-colors cursor-pointer group"
                     >
-                      <td className="px-4 py-3 font-mono font-bold text-brand">{t.ticketNumber}</td>
+                      <td className="px-4 py-3 font-mono font-bold text-brand">
+                        <div className="flex items-center gap-1.5">
+                          <span>{t.ticketNumber}</span>
+                          {t.isPendingSync && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                              <Clock className="w-2.5 h-2.5" /> Pending
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-text-primary group-hover:text-brand transition-colors">
                           {t.title}
@@ -207,7 +320,7 @@ export const AdminAllTickets: React.FC = () => {
                       <td className="px-4 py-3 text-text-secondary">
                         {t.department?.name || <span className="text-text-muted">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-text-secondary">{t.reporter.name}</td>
+                      <td className="px-4 py-3 text-text-secondary">{t.reporter?.name || 'Employee'}</td>
                       <td className="px-4 py-3 text-text-secondary">
                         {t.assignedTechnician ? (
                           t.assignedTechnician.name
@@ -246,7 +359,15 @@ export const AdminAllTickets: React.FC = () => {
           </div>
         )}
       </div>
-      {data && <TablePagination total={data.pagination.total} page={page} limit={data.pagination.limit} onPageChange={(next) => updateParam('page', String(next))} />}
+
+      {data?.pagination && (
+        <TablePagination
+          total={data.pagination.total}
+          page={page}
+          limit={data.pagination.limit}
+          onPageChange={(next) => updateParam('page', String(next))}
+        />
+      )}
     </div>
   );
 };

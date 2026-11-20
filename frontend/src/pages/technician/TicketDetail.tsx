@@ -9,6 +9,7 @@ import {
   queueOfflineComment,
   queueOfflineStatus,
   queueOfflineAssignment,
+  getCachedOfflineTickets,
 } from '../../offline/syncEngine';
 import {
   TicketDetail as TicketDetailType,
@@ -68,7 +69,44 @@ export const TechnicianTicketDetail: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useQuery<{ success: boolean; ticket: TicketDetailType }>({
     queryKey: ['technician-ticket', id],
     queryFn: async () => {
-      return await api.get<{ success: boolean; ticket: TicketDetailType }>(`/tickets/${id}`);
+      if (id?.startsWith('opt-') || !navigator.onLine) {
+        const cached = getCachedOfflineTickets().find((t) => t.id === id);
+        if (cached) {
+          const detail: any = {
+            ...cached,
+            comments: (cached as any).comments || [],
+            events: (cached as any).events || [
+              {
+                id: 'evt-1',
+                ticketId: cached.id,
+                eventType: 'CREATED',
+                actor: cached.reporter,
+                oldValue: null,
+                newValue: cached.title,
+                createdAt: cached.createdAt,
+              },
+            ],
+            attachments: (cached as any).attachments || [],
+          };
+          return { success: true, ticket: detail };
+        }
+      }
+      try {
+        const res = await api.get<{ success: boolean; ticket: TicketDetailType }>(`/tickets/${id}`);
+        return res;
+      } catch (err: any) {
+        const cached = getCachedOfflineTickets().find((t) => t.id === id);
+        if (cached) {
+          const detail: any = {
+            ...cached,
+            comments: (cached as any).comments || [],
+            events: (cached as any).events || [],
+            attachments: (cached as any).attachments || [],
+          };
+          return { success: true, ticket: detail };
+        }
+        throw err;
+      }
     },
     retry: isOnline ? 1 : false,
   });
@@ -263,7 +301,10 @@ export const TechnicianTicketDetail: React.FC = () => {
         <div className="mb-2">
           <Breadcrumbs
             items={[
-              { label: 'Support queue', href: '/technician/queue' },
+              {
+                label: user?.role === 'ADMIN' ? 'All tickets' : 'Support queue',
+                href: user?.role === 'ADMIN' ? '/admin/tickets' : '/technician/queue',
+              },
               { label: ticket.ticketNumber },
             ]}
           />
@@ -285,6 +326,20 @@ export const TechnicianTicketDetail: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {(ticket as any).isPendingSync && (
+        <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 animate-spin" />
+            <span>
+              <strong>Offline Queued Ticket:</strong> This ticket was created offline and is saved locally in outbox. Once connected, it will sync to the server and notify the assigned technician and administrator.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-900 uppercase tracking-wide">
+            Pending Sync
+          </span>
+        </div>
+      )}
 
       {/* 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

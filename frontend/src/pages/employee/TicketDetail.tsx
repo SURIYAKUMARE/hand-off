@@ -5,7 +5,7 @@ import { api, ApiError } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNetwork } from '../../context/NetworkContext';
-import { queueOfflineComment } from '../../offline/syncEngine';
+import { queueOfflineComment, getCachedOfflineTickets } from '../../offline/syncEngine';
 import { TicketDetail as TicketDetailType, CommentItem, CATEGORY_LABELS } from '@helpdesk360/shared';
 import { Breadcrumbs } from '../../components/layout/Breadcrumbs';
 import { StatusChip } from '../../components/tickets/StatusChip';
@@ -33,6 +33,28 @@ export const EmployeeTicketDetail: React.FC = () => {
   const { data, isLoading, isError, error, refetch } = useQuery<{ success: boolean; ticket: TicketDetailType }>({
     queryKey: ['ticket', id],
     queryFn: async () => {
+      if (id?.startsWith('opt-') || !navigator.onLine) {
+        const cached = getCachedOfflineTickets().find((t) => t.id === id);
+        if (cached) {
+          const detail: any = {
+            ...cached,
+            comments: (cached as any).comments || [],
+            events: (cached as any).events || [
+              {
+                id: 'evt-1',
+                ticketId: cached.id,
+                eventType: 'CREATED',
+                actor: cached.reporter,
+                oldValue: null,
+                newValue: cached.title,
+                createdAt: cached.createdAt,
+              },
+            ],
+            attachments: (cached as any).attachments || [],
+          };
+          return { success: true, ticket: detail };
+        }
+      }
       return await api.get<{ success: boolean; ticket: TicketDetailType }>(`/tickets/${id}`);
     },
     retry: isOnline ? 1 : false,

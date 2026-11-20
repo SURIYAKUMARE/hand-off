@@ -158,13 +158,20 @@ export const NewTicket: React.FC = () => {
       // Invalidate queries so lists update immediately
       queryClient.invalidateQueries({ queryKey: ['my-tickets'] });
       queryClient.invalidateQueries({ queryKey: ['tickets-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tickets'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 
       toast.success(
         `Ticket ${data.ticket.ticketNumber} created successfully.`,
         'Ticket Submitted'
       );
-      navigate(`/employee/tickets/${data.ticket.id}`);
+      if (user?.role === 'ADMIN') {
+        navigate(`/technician/tickets/${data.ticket.id}`);
+      } else if (user?.role === 'TECHNICIAN') {
+        navigate(`/technician/tickets/${data.ticket.id}`);
+      } else {
+        navigate(`/employee/tickets/${data.ticket.id}`);
+      }
     },
     onError: (err: any, variables: any) => {
       if (err instanceof ApiError && err.validationErrors) {
@@ -186,11 +193,22 @@ export const NewTicket: React.FC = () => {
             name: user?.name || 'Local Employee',
             email: user?.email || 'employee@helpdesk.local',
           });
+          queryClient.invalidateQueries({ queryKey: ['my-tickets'] });
+          queryClient.invalidateQueries({ queryKey: ['tickets-queue'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-tickets'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+
           toast.info(
             `Connection lost. Ticket ${pending.ticketNumber} saved locally in outbox. It will sync automatically when back online.`,
             'Saved Offline'
           );
-          navigate('/employee/tickets');
+          if (user?.role === 'ADMIN') {
+            navigate('/admin/tickets');
+          } else if (user?.role === 'TECHNICIAN') {
+            navigate('/technician/queue');
+          } else {
+            navigate('/employee/tickets');
+          }
         } else {
           setGeneralError(err?.message || 'Unable to create ticket. Please try again.');
         }

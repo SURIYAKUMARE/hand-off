@@ -27,6 +27,7 @@ import { TableSkeleton } from '../../components/common/Skeleton';
 import { ErrorBanner } from '../../components/common/ErrorBanner';
 import { EmptyState } from '../../components/common/EmptyState';
 import { RotateCcw, UserPlus, ArrowRightCircle, CloudOff } from 'lucide-react';
+import { getCachedOfflineTickets, saveCachedOfflineTickets } from '../../offline/syncEngine';
 
 export const SupportQueue: React.FC = () => {
   const navigate = useNavigate();
@@ -92,9 +93,27 @@ export const SupportQueue: React.FC = () => {
       p.set('sort', sortBy);
       p.set('order', sortOrder);
 
-      return await api.get<PaginatedResult<TicketSummary>>(`/tickets?${p.toString()}`);
+      const res = await api.get<PaginatedResult<TicketSummary>>(`/tickets?${p.toString()}`);
+      if (res?.data && Array.isArray(res.data)) {
+        const pending = getCachedOfflineTickets().filter((t) => t.isPendingSync);
+        saveCachedOfflineTickets([...pending, ...res.data]);
+      }
+      return res;
     },
+    retry: navigator.onLine ? 1 : false,
   });
+
+  const cachedAll = getCachedOfflineTickets();
+  const pendingTickets = cachedAll.filter((t) => t.isPendingSync);
+
+  let displayTickets: Array<TicketSummary & { isPendingSync?: boolean }> = [];
+  if (data?.data && Array.isArray(data.data)) {
+    const existingIds = new Set(data.data.map((t) => t.id));
+    const uniquePending = pendingTickets.filter((t) => !existingIds.has(t.id));
+    displayTickets = [...uniquePending, ...data.data];
+  } else {
+    displayTickets = cachedAll;
+  }
 
   // Inline assignment mutation
   const assignMutation = useMutation({
@@ -155,10 +174,17 @@ export const SupportQueue: React.FC = () => {
     {
       key: 'ticketNumber',
       header: 'Ticket ID',
-      width: '110px',
+      width: '120px',
       sortable: true,
-      render: (t) => (
-        <span className="font-semibold text-brand text-xs">{t.ticketNumber}</span>
+      render: (t: any) => (
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-brand text-xs">{t.ticketNumber}</span>
+          {t.isPendingSync && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+              Pending
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -384,9 +410,11 @@ export const SupportQueue: React.FC = () => {
         <div>
           <DataTable
             columns={columns}
-            data={data?.data || []}
+            data={displayTickets}
             keyExtractor={(t) => t.id}
-            onRowClick={(t) => navigate(`/technician/tickets/${t.id}`)}
+            onRowClick={(t: any) => {
+              navigate(`/technician/tickets/${t.id}`);
+            }}
             highlightUrgent
             isUrgentRow={(t) => t.priority === 'URGENT' && t.status !== 'CLOSED'}
             sortColumn={sortBy}

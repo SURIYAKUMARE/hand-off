@@ -22,10 +22,16 @@ export class ApiError extends Error {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('helpdesk360_token') : null;
+
   const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
+
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
 
   const response = await fetch(url, {
     ...options,
@@ -76,10 +82,16 @@ export const api = {
     request<T>(endpoint, { ...options, method: 'DELETE' }),
   postFormData: async <T>(endpoint: string, formData: FormData): Promise<T> => {
     const url = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('helpdesk360_token') : null;
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     const response = await fetch(url, {
       method: 'POST',
       body: formData,
       credentials: 'include',
+      headers,
     });
     let data: any = null;
     const contentType = response.headers.get('content-type');
