@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
+import { useQuery } from '@tanstack/react-query';
+import { TablePagination } from '../../components/common/TablePagination';
 import {
   TicketSummary,
+  PaginatedResult,
   DepartmentSummary,
   TechnicianWorkloadItem,
   PRIORITY_CONFIG,
@@ -14,10 +17,9 @@ import { StatusChip } from '../../components/tickets/StatusChip';
 import { Search, Filter, Ticket, Loader2, ArrowUpRight, Clock, AlertTriangle } from 'lucide-react';
 
 export const AdminAllTickets: React.FC = () => {
-  const [tickets, setTickets] = useState<TicketSummary[]>([]);
   const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
   const [technicians, setTechnicians] = useState<TechnicianWorkloadItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [filterError, setFilterError] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('search') || '';
@@ -26,24 +28,30 @@ export const AdminAllTickets: React.FC = () => {
   const deptFilter = searchParams.get('dept') || 'ALL';
   const techFilter = searchParams.get('tech') || 'ALL';
 
+  const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
+  const params = new URLSearchParams({ page: String(page) });
+  if (search.trim()) params.set('search', search.trim());
+  if (statusFilter !== 'ALL') params.set('status', statusFilter);
+  if (priorityFilter !== 'ALL') params.set('priority', priorityFilter);
+  if (deptFilter !== 'ALL') params.set('departmentId', deptFilter);
+  if (techFilter !== 'ALL') params.set('assigneeId', techFilter === 'UNASSIGNED' ? 'unassigned' : techFilter);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['admin-tickets', params.toString()],
+    queryFn: ({ signal }) => api.get<PaginatedResult<TicketSummary>>(`/tickets?${params}`, { signal }),
+  });
   const navigate = useNavigate();
 
   const loadData = async () => {
     try {
-      setIsLoading(true);
-      const [ticketsRes, deptsRes, techsRes] = await Promise.all([
-        api.get<{ success: boolean; tickets: TicketSummary[] }>('/tickets'),
+      const [deptsRes, techsRes] = await Promise.all([
         api.get<{ success: boolean; departments: DepartmentSummary[] }>('/departments'),
         api.get<{ success: boolean; technicians: TechnicianWorkloadItem[] }>('/admin/technicians'),
       ]);
 
-      if (ticketsRes.success) setTickets(ticketsRes.tickets);
       if (deptsRes.success) setDepartments(deptsRes.departments);
       if (techsRes.success) setTechnicians(techsRes.technicians);
-    } catch (err: any) {
-      // handled
-    } finally {
-      setIsLoading(false);
+    } catch {
+      setFilterError(true);
     }
   };
 
@@ -58,24 +66,11 @@ export const AdminAllTickets: React.FC = () => {
     } else {
       next.set(key, val);
     }
-    setSearchParams(next);
+    if (key !== 'page') next.delete('page');
+    setSearchParams(next, { replace: key === 'search' });
   };
 
-  const filteredTickets = tickets.filter((t) => {
-    const matchesSearch =
-      t.ticketNumber.toLowerCase().includes(search.toLowerCase()) ||
-      t.title.toLowerCase().includes(search.toLowerCase()) ||
-      t.reporter.name.toLowerCase().includes(search.toLowerCase());
-
-    const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
-    const matchesPriority = priorityFilter === 'ALL' || t.priority === priorityFilter;
-    const matchesDept = deptFilter === 'ALL' || t.department?.id === deptFilter;
-    const matchesTech =
-      techFilter === 'ALL' ||
-      (techFilter === 'UNASSIGNED' ? !t.assignedTechnician : t.assignedTechnician?.id === techFilter);
-
-    return matchesSearch && matchesStatus && matchesPriority && matchesDept && matchesTech;
-  });
+  const filteredTickets = data?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -87,6 +82,8 @@ export const AdminAllTickets: React.FC = () => {
           { label: 'All Tickets' },
         ]}
       />
+
+      {filterError && <p role="alert" className="text-sm text-rose-700">Department or technician filters could not be loaded.</p>}
 
       {/* Filter Bar */}
       <div className="p-3 rounded-lg border border-border bg-surface flex flex-wrap items-center gap-3">
@@ -155,7 +152,11 @@ export const AdminAllTickets: React.FC = () => {
 
       {/* Tickets Table */}
       <div className="rounded-lg border border-border bg-surface overflow-hidden shadow-xs">
-        {isLoading ? (
+        {isError ? (
+        <div role="alert" className="rounded-lg border border-border bg-surface p-4 text-sm">
+          Could not load tickets. <button className="text-brand underline" onClick={() => void refetch()}>Try again</button>
+        </div>
+      ) : isLoading ? (
           <div className="p-12 text-center">
             <Loader2 className="w-6 h-6 animate-spin text-brand mx-auto mb-2" />
             <p className="text-xs text-text-muted">Loading all enterprise tickets...</p>
@@ -245,6 +246,7 @@ export const AdminAllTickets: React.FC = () => {
           </div>
         )}
       </div>
+      {data && <TablePagination total={data.pagination.total} page={page} limit={data.pagination.limit} onPageChange={(next) => updateParam('page', String(next))} />}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../api/client';
+import { getAllPages } from '../../api/client';
 import { AuditLogItem } from '@helpdesk360/shared';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ShieldCheck, Search, Filter, Loader2, User, Globe } from 'lucide-react';
@@ -16,10 +16,7 @@ export const AuditLogs: React.FC = () => {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get<{ success: boolean; logs: AuditLogItem[] }>('/admin/audit-logs');
-      if (res.success) {
-        setLogs(res.logs);
-      }
+      setLogs(await getAllPages<AuditLogItem>('/admin/audit-logs'));
     } catch (err: any) {
       toast.error(err.message || 'Failed to load audit logs.');
     } finally {

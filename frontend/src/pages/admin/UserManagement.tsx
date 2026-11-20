@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { api } from '../../api/client';
+import { api, getAllPages } from '../../api/client';
 import { UserSummary, DepartmentSummary, UserRole, AccountStatus } from '@helpdesk360/shared';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/common/Button';
@@ -56,6 +56,7 @@ export const UserManagement: React.FC = () => {
 
   const [newPassword, setNewPassword] = useState('');
   const [csvContent, setCsvContent] = useState('');
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
   const [formSubmitting, setFormSubmitting] = useState(false);
 
   const toast = useToast();
@@ -64,11 +65,11 @@ export const UserManagement: React.FC = () => {
     try {
       setIsLoading(true);
       const [usersRes, deptsRes] = await Promise.all([
-        api.get<{ success: boolean; users: UserSummary[] }>('/admin/users'),
+        getAllPages<UserSummary>('/admin/users'),
         api.get<{ success: boolean; departments: DepartmentSummary[] }>('/departments'),
       ]);
 
-      if (usersRes.success) setUsers(usersRes.users);
+      setUsers(usersRes);
       if (deptsRes.success) setDepartments(deptsRes.departments);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load user directory.');
@@ -104,7 +105,7 @@ export const UserManagement: React.FC = () => {
       departmentId: departments[0]?.id || '',
       role: 'EMPLOYEE',
       status: 'ACTIVE',
-      password: 'TemporaryPass123!',
+      password: '',
     });
     setIsAddModalOpen(true);
   };
@@ -183,7 +184,7 @@ export const UserManagement: React.FC = () => {
     if (!selectedUser) return;
     try {
       setFormSubmitting(true);
-      await api.patch(`/admin/users/${selectedUser.id}/status`, { status: targetStatus });
+      await api.patch(`/admin/users/${selectedUser.id}`, { status: targetStatus });
       toast.success(`Account status changed to ${targetStatus}.`);
       setIsConfirmStatusModalOpen(false);
       await loadData();
@@ -196,7 +197,7 @@ export const UserManagement: React.FC = () => {
 
   const handleOpenResetPassword = (user: UserSummary) => {
     setSelectedUser(user);
-    setNewPassword('SecureTempPass' + Math.floor(100 + Math.random() * 900) + '!');
+    setNewPassword('');
     setIsResetPasswordModalOpen(true);
   };
 
@@ -225,12 +226,19 @@ export const UserManagement: React.FC = () => {
     }
     try {
       setFormSubmitting(true);
-      const res = await api.post<{ success: boolean; createdCount: number; errors?: string[] }>(
+      setCsvErrors([]);
+      const res = await api.post<{ success: boolean; importedCount: number; errors: string[] }>(
         '/admin/users/import-csv',
         { csvContent }
       );
       if (res.success) {
-        toast.success(`Imported ${res.createdCount} users successfully!`);
+        if (res.errors.length) {
+          toast.warning(`Imported ${res.importedCount}. ${res.errors.length} row(s) skipped.`);
+          setCsvErrors(res.errors);
+          await loadData();
+          return;
+        }
+        toast.success(`Imported ${res.importedCount} users successfully.`);
         setIsCsvModalOpen(false);
         setCsvContent('');
         await loadData();
@@ -739,7 +747,7 @@ export const UserManagement: React.FC = () => {
       {/* Import CSV Modal */}
       <Modal
         isOpen={isCsvModalOpen}
-        onClose={() => setIsCsvModalOpen(false)}
+        onClose={() => { setIsCsvModalOpen(false); setCsvErrors([]); }}
         title="Import Users via CSV"
         description="Bulk import enterprise users into HelpDesk 360 directory."
       >

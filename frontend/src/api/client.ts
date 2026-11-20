@@ -1,3 +1,5 @@
+import type { PaginatedResult } from '@helpdesk360/shared';
+
 export class ApiError extends Error {
   status: number;
   validationErrors?: Array<{ field: string; message: string }>;
@@ -92,3 +94,16 @@ export const api = {
     return data as T;
   },
 };
+
+export async function getAllPages<T>(endpoint: string): Promise<T[]> {
+  const items: T[] = [];
+  let page = 1;
+  let totalPages: number;
+  do {
+    const response = await api.get<PaginatedResult<T>>(`${endpoint}?page=${page}&limit=100`);
+    items.push(...response.data);
+    totalPages = response.pagination.totalPages;
+    page++;
+  } while (page <= totalPages);
+  return items;
+}

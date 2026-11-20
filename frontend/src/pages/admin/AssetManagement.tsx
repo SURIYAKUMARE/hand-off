@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../api/client';
-import { AssetItem, DepartmentSummary, UserSummary, ASSET_STATUS_CONFIG } from '@helpdesk360/shared';
+import { api, getAllPages } from '../../api/client';
+import { AssetItem, DepartmentSummary, UserSummary, ASSET_STATUS_CONFIG, ASSET_TYPE_LABELS } from '@helpdesk360/shared';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/common/Button';
 import { TextInput } from '../../components/common/TextInput';
@@ -24,9 +24,8 @@ export const AssetManagement: React.FC = () => {
     assetTag: '',
     name: '',
     type: 'LAPTOP',
-    model: '',
     serialNumber: '',
-    status: 'IN_USE',
+    status: 'ACTIVE',
     assignedUserId: '',
     departmentId: '',
   });
@@ -40,12 +39,12 @@ export const AssetManagement: React.FC = () => {
       const [assetsRes, deptsRes, usersRes] = await Promise.all([
         api.get<{ success: boolean; assets: AssetItem[] }>('/assets'),
         api.get<{ success: boolean; departments: DepartmentSummary[] }>('/departments'),
-        api.get<{ success: boolean; users: UserSummary[] }>('/admin/users'),
+        getAllPages<UserSummary>('/admin/users'),
       ]);
 
       if (assetsRes.success) setAssets(assetsRes.assets);
       if (deptsRes.success) setDepartments(deptsRes.departments);
-      if (usersRes.success) setUsers(usersRes.users);
+      setUsers(usersRes);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load IT assets.');
     } finally {
@@ -76,9 +75,8 @@ export const AssetManagement: React.FC = () => {
       assetTag: `AST-${Math.floor(1000 + Math.random() * 9000)}`,
       name: '',
       type: 'LAPTOP',
-      model: '',
       serialNumber: '',
-      status: 'IN_USE',
+      status: 'ACTIVE',
       assignedUserId: '',
       departmentId: departments[0]?.id || '',
     });
@@ -91,7 +89,6 @@ export const AssetManagement: React.FC = () => {
       assetTag: asset.assetTag,
       name: asset.name,
       type: asset.type,
-      model: asset.model || '',
       serialNumber: asset.serialNumber || '',
       status: asset.status,
       assignedUserId: asset.assignedUserId || '',
@@ -110,7 +107,7 @@ export const AssetManagement: React.FC = () => {
     try {
       setSubmitting(true);
       if (editingAsset) {
-        await api.patch(`/assets/${editingAsset.id}`, formData);
+        await api.patch(`/assets/${editingAsset.id}`, { ...formData, assignedUserId: formData.assignedUserId || null, departmentId: formData.departmentId || null });
         toast.success(`Asset ${formData.assetTag} updated.`);
       } else {
         await api.post('/assets', formData);
@@ -198,13 +195,9 @@ export const AssetManagement: React.FC = () => {
           className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-white text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="ALL">All Hardware Types</option>
-          <option value="LAPTOP">Laptops</option>
-          <option value="DESKTOP">Desktops</option>
-          <option value="MONITOR">Monitors</option>
-          <option value="SERVER">Servers</option>
-          <option value="NETWORK_EQUIPMENT">Network Gear</option>
-          <option value="MOBILE">Mobile Devices</option>
-          <option value="ACCESSORY">Accessories</option>
+          {Object.entries(ASSET_TYPE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
         </select>
 
         <select
@@ -213,10 +206,9 @@ export const AssetManagement: React.FC = () => {
           className="px-2.5 py-1.5 rounded-md border border-border text-xs bg-white text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="ALL">All Statuses</option>
-          <option value="IN_USE">In Use</option>
-          <option value="IN_STORAGE">In Storage</option>
-          <option value="UNDER_REPAIR">Under Repair</option>
-          <option value="RETIRED">Retired</option>
+          {Object.entries(ASSET_STATUS_CONFIG).map(([value, { label }]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
         </select>
       </div>
 
@@ -240,7 +232,7 @@ export const AssetManagement: React.FC = () => {
                   <th className="px-4 py-3">Asset</th>
                   <th className="px-4 py-3">Tag</th>
                   <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Serial / Model</th>
+                  <th className="px-4 py-3">Serial number</th>
                   <th className="px-4 py-3">Assigned User</th>
                   <th className="px-4 py-3">Department</th>
                   <th className="px-4 py-3">Status</th>
@@ -325,13 +317,9 @@ export const AssetManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg border border-border text-xs bg-white text-text-primary focus:outline-none focus:ring-1 focus:ring-brand"
               >
-                <option value="LAPTOP">Laptop</option>
-                <option value="DESKTOP">Desktop Workstation</option>
-                <option value="MONITOR">Monitor / Display</option>
-                <option value="SERVER">Server</option>
-                <option value="NETWORK_EQUIPMENT">Network Gear</option>
-                <option value="MOBILE">Mobile Phone / Tablet</option>
-                <option value="ACCESSORY">Peripheral / Accessory</option>
+                {Object.entries(ASSET_TYPE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </div>
 
@@ -342,21 +330,14 @@ export const AssetManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg border border-border text-xs bg-white text-text-primary focus:outline-none focus:ring-1 focus:ring-brand"
               >
-                <option value="IN_USE">In Use</option>
-                <option value="IN_STORAGE">In Storage</option>
-                <option value="UNDER_REPAIR">Under Repair</option>
-                <option value="RETIRED">Retired</option>
+                {Object.entries(ASSET_STATUS_CONFIG).map(([value, { label }]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <TextInput
-              label="Model"
-              value={formData.model}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              placeholder="Apple M3 Pro 36GB"
-            />
             <TextInput
               label="Serial Number"
               value={formData.serialNumber}
